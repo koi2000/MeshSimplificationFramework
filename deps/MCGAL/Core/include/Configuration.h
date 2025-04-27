@@ -1,0 +1,47 @@
+#ifndef CONFIGURATION_H
+#define CONFIGURATION_H
+namespace MCGAL {
+
+// #define VERTEX_POOL_SIZE 50000 * 1024
+// #define HALFEDGE_POOL_SIZE 100000 * 1024
+// #define FACET_POOL_SIZE 80000 * 1024
+
+#define VERTEX_POOL_SIZE 20000 * 1024
+#define HALFEDGE_POOL_SIZE 30000 * 1024
+#define FACET_POOL_SIZE 26000 * 1024
+
+#define VID_TO_POOLID 24000 * 1024
+
+#define BUCKET_SIZE 4096
+#define SMALL_BUCKET_SIZE 32
+
+#define HALFEDGE_IN_VERTEX 24
+#define HALFEDGE_IN_FACE 24
+#define VERTEX_IN_FACE 24
+
+#define MESHID_OFFSET 25
+
+#define DEFAULT_MESH_ID 0
+
+// #define DECODE
+
+#ifdef DECODE
+#    define USE_SEGMENT
+#    define SEGMENT_SIZE 50
+
+#else
+#    define SEGMENT_SIZE 1
+
+#endif
+
+// #define COLOR
+// #define LOAD_COLOR
+
+#define ENCODE_BOUNDARY
+
+// #define OLD_DUMP_TYPE
+
+#define BUFFER_SIZE 600 * 1024 * 1024
+}  // namespace MCGAL
+
+#endif
