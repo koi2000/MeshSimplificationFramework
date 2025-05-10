@@ -1,31 +1,37 @@
-#include "include/SimpleEncoder.h"
+#include "include/MultiSimpleEncoder.h"
 #include "BufferUtils.h"
 #include "VertexSplitNode.h"
 #include "biops.h"
 #include <fstream>
 #include <unordered_set>
 
-SimpleEncoder::SimpleEncoder(std::string path) {
+MultiSimpleEncoder::MultiSimpleEncoder(std::string path) {
     MCGAL::contextPool.initPoolSize(1);
     mesh.setMeshId(0);
     mesh.loadOFF(path);
+    splitter.loadMesh(&mesh);
+    splitter.split(50);
+    seeds = splitter.exportSeeds();
 
     MCGAL::contextPool.add_property(mesh.meshId(), m_vpQuadrics);
     MCGAL::contextPool.add_property(mesh.meshId(), m_epError);
     MCGAL::contextPool.add_property(mesh.meshId(), m_epTargetPoints);
     MCGAL::contextPool.add_property(mesh.meshId(), m_epDirty);
-    seed = mesh.faces()[0]->proxyHalfedge();
     buffer = new char[BUFFER_SIZE];
 }
 
-SimpleEncoder::~SimpleEncoder() {}
+MultiSimpleEncoder::~MultiSimpleEncoder() {}
 
-void SimpleEncoder::encodeVertexSymbol() {
+void MultiSimpleEncoder::encode_group(int groupId, size_t uiRemainedVertexNum) {
+    SimplifyVertexTo(uiRemainedVertexNum, groupId, seeds[groupId]);
+}
+
+void MultiSimpleEncoder::encodeVertexSymbol(int groupId) {
     mesh.garbage_collection();
     std::deque<char> vertexSym;
     std::deque<MCGAL::VertexSplitNode*> nodes;
     std::queue<int> gateQueue;
-    gateQueue.push(seed->face()->poolId());
+    gateQueue.push(seeds[groupId]->face()->poolId());
     int count = 0;
     while (!gateQueue.empty()) {
         int fid = gateQueue.front();
@@ -67,17 +73,43 @@ void SimpleEncoder::encodeVertexSymbol() {
             st = st->next();
         } while (st != ed);
     }
-    vertexSymbols.push_back(vertexSym);
-    vertexSplitNodes.push_back(nodes);
+    multiVertexSymbols[groupId].push_back(vertexSym);
+    multiVertexSplitNodes[groupId].push_back(nodes);
 }
 
-void SimpleEncoder::fast_quardic_encode() {}
+void MultiSimpleEncoder::encodeBoundary() {}
 
-void SimpleEncoder::encodeBoundary() {
+void MultiSimpleEncoder::encode() {}
 
-}
+// void MultiSimpleEncoder::encode_group(int groupId) {
+//     std::queue<int> gateQueue;
+//     gateQueue.push(seeds[groupId]->poolId());
+//     int removedCount = 0;
+//     while (!gateQueue.empty()) {
+//         int hid = gateQueue.front();
+//         MCGAL::Halfedge* h = MCGAL::contextPool.getHalfedgeByIndex(mesh.meshId(), hid);
+//         gateQueue.pop();
+//         if (h->isProcessed()) {
+//             continue;
+//         }
+//         h->setProcessed();
+//         if (isRemovable(h) && mesh.is_collapse_ok(h)) {
+//             MCGAL::Vertex* v = mesh.halfedge_collapse(h);
+//             for (MCGAL::Halfedge* h : v->halfedges()) {
+//                 if (!h->isProcessed())
+//                     gateQueue.push(h->poolId());
+//             }
+//         } else {
+//             MCGAL::Vertex* v = h->vertex();
+//             for (MCGAL::Halfedge* h : v->halfedges()) {
+//                 if (!h->isProcessed())
+//                     gateQueue.push(h->poolId());
+//             }
+//         }
+//     }
+// }
 
-void SimpleEncoder::simple_encode() {
+void MultiSimpleEncoder::simple_encode() {
     std::vector<MCGAL::Facet*>& faces = mesh.faces();
     int target = faces.size() / 50;
     int idx = 0;

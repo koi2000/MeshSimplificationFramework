@@ -1,6 +1,7 @@
 #ifndef FACET_H
 #define FACET_H
 #include "Point.h"
+#include "Halfedge.h"
 #include <assert.h>
 #include <set>
 #include <vector>
@@ -10,6 +11,66 @@ class Vertex;
 class Halfedge;
 class Facet {
   public:
+    class halfedge_iterator {
+      private:
+        Halfedge* current_;
+        Halfedge* start_;
+        bool is_first_iteration_;
+
+      public:
+        // Constructor
+        halfedge_iterator(Halfedge* start = nullptr) : current_(start), start_(start), is_first_iteration_(true) {}
+
+        // Dereference operator
+        Halfedge* operator*() const {
+            return current_;
+        }
+
+        // Pre-increment operator
+        halfedge_iterator& operator++() {
+            if (current_ != nullptr) {
+                if (is_first_iteration_) {
+                    is_first_iteration_ = false;
+                } else {
+                    // Stop if we've completed the loop and returned to start
+                    if (current_->next() == start_) {
+                        current_ = nullptr;
+                        return *this;
+                    }
+                }
+                current_ = current_->next();
+            }
+            return *this;
+        }
+
+        // Post-increment operator
+        halfedge_iterator operator++(int) {
+            halfedge_iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        // Equality comparison
+        bool operator==(const halfedge_iterator& other) const {
+            return current_ == other.current_;
+        }
+
+        // Inequality comparison
+        bool operator!=(const halfedge_iterator& other) const {
+            return !(*this == other);
+        }
+    };
+
+    // Iterator begin method - returns iterator pointing to the first halfedge
+    halfedge_iterator halfedges_begin() const {
+        return halfedge_iterator(proxyHalfedge_);
+    }
+
+    // Iterator end method - returns iterator representing past-the-end
+    halfedge_iterator halfedges_end() const {
+        return halfedge_iterator(nullptr);
+    }
+
     ~Facet();
 
     Facet() {};
@@ -111,7 +172,7 @@ class Facet {
     std::vector<Vertex*> getVertices();
 
     int facet_degree();
-    
+
   private:
     enum ProcessedFlag { NotProcessed, Processed };
     enum RemovedFlag { NotRemoved, Removed };

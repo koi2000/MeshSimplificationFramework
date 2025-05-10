@@ -30,6 +30,10 @@ class Vertex : public Point {
         return poolId_;
     }
 
+    int groupId() {
+        return groupId_;
+    }
+
     void setPoolId(int poolId) {
         this->poolId_ = poolId;
     }

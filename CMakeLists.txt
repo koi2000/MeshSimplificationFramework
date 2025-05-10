@@ -55,6 +55,16 @@ file(GLOB_RECURSE SIMPLE_ENCODER_FILES
     "src/SimpleStrategy.cpp"
 )
 
+file(GLOB_RECURSE MULTI_SIMPLE_ENCODER_FILES
+    "src/common/Graph.h"
+    "src/include/MultiSimpleEncoder.h"
+    "src/include/PartialSplitter.h"
+    "src/MultiSimpleEncoder.cpp"
+    "src/MultiSimpleDump.cpp"
+    "src/MultiSimpleStrategy.cpp"
+    "src/PartialSplitter.cpp"
+)
+
 file(GLOB_RECURSE SIMPLE_DECODER_FILES
     "src/include/SimpleDecoder.h"
     "src/SimpleDecoder.cpp"
@@ -72,6 +82,9 @@ add_executable(SimpleEncoderTest tools/SimpleEncoderTest.cpp ${SIMPLE_ENCODER_FI
 target_include_directories(SimpleEncoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
 target_link_libraries(SimpleEncoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
 
+add_executable(MultiSimpleEncoderTest tools/MultiSimpleEncoderTest.cpp ${MULTI_SIMPLE_ENCODER_FILES} ${MINI_CGAL_FILES})
+target_include_directories(MultiSimpleEncoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
+target_link_libraries(MultiSimpleEncoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
 
 add_executable(SimpleDecoderTest tools/SimpleDecoderTest.cpp ${SIMPLE_DECODER_FILES} ${MINI_CGAL_FILES})
 target_include_directories(SimpleDecoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
