@@ -11,9 +11,9 @@ void ContextPool::initPoolSize(int size) {
 }
 
 int ContextPool::registerPool(int estimateVSize, int estimateHSize, int estimateFSize) {
-    estimateVSize *= 50;
-    estimateHSize *= 50;
-    estimateFSize *= 50;
+    estimateVSize *= 3;
+    estimateHSize *= 3;
+    estimateFSize *= 3;
 
     vpoolSizes.push_back(estimateVSize);
     hpoolSizes.push_back(estimateHSize);

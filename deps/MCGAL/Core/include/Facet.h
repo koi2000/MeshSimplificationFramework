@@ -1,7 +1,7 @@
 #ifndef FACET_H
 #define FACET_H
-#include "Point.h"
 #include "Halfedge.h"
+#include "Point.h"
 #include <assert.h>
 #include <set>
 #include <vector>
@@ -10,6 +10,11 @@ class Point;
 class Vertex;
 class Halfedge;
 class Facet {
+  private:
+    enum ProcessedFlag { NotProcessed, Processed };
+    enum RemovedFlag { NotRemoved, Removed };
+    enum SplittableFlag { Unknown = 0, Splittable = 1, Unsplittable = 2 };
+
   public:
     class halfedge_iterator {
       private:
@@ -85,7 +90,7 @@ class Facet {
     void setGroupId(int gid) {
         this->groupId_ = gid;
     }
-    bool isDegenerate();
+
     Facet* clone();
     void reset(Halfedge* h);
     void reset(std::vector<Halfedge*>& hs);
@@ -112,10 +117,19 @@ class Facet {
 
     inline void resetState() {
         processedFlag_ = NotProcessed;
+        splittableFlag_ = Unknown;
     }
 
     inline void resetProcessedFlag() {
         processedFlag_ = NotProcessed;
+    }
+
+    inline void setProcessedFlag(ProcessedFlag flag) {
+        processedFlag_ = flag;
+    }
+
+    inline ProcessedFlag processedFlag() {
+        return processedFlag_;
     }
 
     inline void setProcessedFlag() {
@@ -171,12 +185,36 @@ class Facet {
 
     std::vector<Vertex*> getVertices();
 
+    inline bool isConquered() const {
+        return (splittableFlag_ == Splittable || splittableFlag_ == Unsplittable || removedFlag_ == Removed);
+    }
+
+    inline bool isSplittable() const {
+        return (splittableFlag_ == Splittable);
+    }
+
+    inline bool isUnsplittable() const {
+        return (splittableFlag_ == Unsplittable);
+    }
+
+    inline void setSplittable() {
+        assert(splittableFlag_ == Unknown);
+        splittableFlag_ = Splittable;
+    }
+
+    inline void setUnsplittable() {
+        assert(splittableFlag_ == Unknown || splittableFlag_ == Unsplittable);
+        splittableFlag_ = Unsplittable;
+    }
+
+    Point getRemovedVertexPos() const;
+
+    void setRemovedVertexPos(Point p);
+
     int facet_degree();
 
   private:
-    enum ProcessedFlag { NotProcessed, Processed };
-    enum RemovedFlag { NotRemoved, Removed };
-
+    SplittableFlag splittableFlag_ = Unknown;
     ProcessedFlag processedFlag_ = NotProcessed;
     RemovedFlag removedFlag_ = NotRemoved;
 
@@ -184,6 +222,7 @@ class Facet {
     int groupId_ = -1;
     int meshId_ = -1;
     MCGAL::Halfedge* proxyHalfedge_ = nullptr;
+    MCGAL::Point removedVertexPos;
     std::vector<Vertex*> vertices_;
     std::vector<Halfedge*> halfedges_;
     int facet_degree_ = 0;

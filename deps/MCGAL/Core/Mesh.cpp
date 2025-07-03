@@ -13,6 +13,8 @@
 #include <sstream>
 namespace MCGAL {
 
+#define COLOR
+
 constexpr std::array<std::array<int, 3>, 68> colors = {{
     // {0, 0, 0},        // Black
     {255, 0, 0},      // Red
@@ -309,6 +311,9 @@ MCGAL::Vertex* Mesh::halfedge_collapse(MCGAL::Halfedge* h, MCGAL::Point newp) {
     v1->setCollapsed();
     vsn->bitmap = bitmap;
     v1->setVertexSplitNode(vsn);
+    if(v2->isBoundary()) {
+        v1->setBoundary();
+    }
     return v1;
 }
 
@@ -440,6 +445,60 @@ MCGAL::Halfedge* Mesh::vertex_split(MCGAL::Vertex* v, MCGAL::VertexSplitNode* no
     }
 
     return nullptr;
+}
+
+bool Mesh::IsFlipped(MCGAL::Halfedge* edge, const MCGAL::Point& ptTarget) {
+    MCGAL::Vertex* v0 = edge->vertex();
+    MCGAL::Vertex* v1 = edge->end_vertex();
+    // // 检查坍缩后是否会导致重叠面片或非流形网格
+    // // 坍缩后确保其他点的邻居数不能少于三个
+
+    for (MCGAL::Halfedge* h : v0->halfedges()) {
+        if (h->face()->isRemoved()) {
+            continue;
+        }
+        std::vector<MCGAL::Vertex*> vs;
+        MCGAL::Halfedge* st = h->face()->proxyHalfedge();
+        MCGAL::Halfedge* ed = st;
+        do {
+            vs.push_back(st->vertex());
+            st = st->next();
+        } while (st != ed);
+        if (vs[0] == v1 || vs[1] == v1 || vs[2] == v1) {
+            continue;
+        }
+        int idxV0 = 0;
+        for (int i = 0; i < vs.size(); i++) {
+            MCGAL::Vertex* v = vs[i];
+            if (vs[i] == v0) {
+                idxV0 = i;
+            }
+        }
+        MCGAL::Point pt0 = v0->point();
+        MCGAL::Point pt1 = vs[(idxV0 + 1) % 3]->point();
+        MCGAL::Point pt2 = vs[(idxV0 + 2) % 3]->point();
+
+        MCGAL::Point dir1 = pt1 - ptTarget;
+        dir1.normalize();
+        MCGAL::Point dir2 = pt2 - ptTarget;
+        dir2.normalize();
+
+        // The angle below can be adjusted, but now is enough
+        // if the angle between dir1 and dir2 small than 2.6 angle, return true
+        if (fabs(dir1.dot(dir2)) > 0.999)
+            return true;
+        MCGAL::Point normold;
+        try {
+            normold = h->face()->computeNormal();
+        } catch (std::string exp) { return true; }
+        MCGAL::Point norm = dir1.cross(dir2);
+        norm.normalize();
+
+        // if the angle between normold and norm large than 78.5 angle, return true
+        if ((normold.dot(norm)) < 0.2)
+            return true;
+    }
+    return false;
 }
 
 bool Mesh::is_collapse_ok(MCGAL::Halfedge* v0v1) {
@@ -732,195 +791,196 @@ MCGAL::Vertex* Mesh::halfedge_collapse(MCGAL::Halfedge* h) {
 //     return nullptr;
 // }
 
-// Halfedge* Mesh::split_facet_non_meshId(Halfedge* h, Halfedge* g) {
-//     Facet* origin = h->face;
-//     // early expose
-//     Facet* fnew = MCGAL::contextPool.allocateFaceFromPool();
-//     // create new halfedge
-//     Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(h->end_vertex, g->end_vertex);
-//     Halfedge* oppo_hnew = MCGAL::contextPool.allocateHalfedgeFromPool(g->end_vertex, h->end_vertex);
-//     // set the opposite
-//     // set the connect information
-//     hnew->next = g->next;
-//     oppo_hnew->next = h->next;
-//     h->next = hnew;
-//     g->next = oppo_hnew;
-//     // create new face depend on vertexs
-//     origin->reset(hnew);
-//     fnew->reset(oppo_hnew);
-//     fnew->flag = origin->flag;
-//     fnew->processedFlag = origin->processedFlag;
-//     fnew->groupId = origin->groupId;
-//     // fnew->removedFlag = origin->removedFlag;
-//     // add halfedge and face to mesh
-//     this->faces_.push_back(fnew);
-//     return hnew;
-// }
+Halfedge* Mesh::split_facet_non_meshId(Halfedge* h, Halfedge* g) {
+    Facet* origin = h->face();
+    // early expose
+    Facet* fnew = MCGAL::contextPool.allocateFaceFromPool(meshId_);
+    // create new halfedge
+    Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, h->end_vertex(), g->end_vertex());
+    Halfedge* oppo_hnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, g->end_vertex(), h->end_vertex());
+    // set the opposite
+    // set the connect information
 
-// Halfedge* Mesh::split_facet(Halfedge* h, Halfedge* g) {
-//     Facet* origin = h->face();
-//     // early expose
-//     Facet* fnew = MCGAL::contextPool.allocateFaceFromPool(meshId_);
-//     // create new halfedge
-//     Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(h->end_vertex(), g->end_vertex(), meshId_);
-//     Halfedge* oppo_hnew = MCGAL::contextPool.allocateHalfedgeFromPool(g->end_vertex(), h->end_vertex(), meshId_);
-//     // set the opposite
-//     // set the connect information
-//     hnew->setNext(g->next());
-//     oppo_hnew->setNext(h->next());
-//     h->setNext(hnew);
-//     g->setNext(oppo_hnew);
-//     // create new face depend on vertexs
-//     origin->reset(hnew);
-//     fnew->reset(oppo_hnew);
-//     fnew->flag = origin->flag;
-//     fnew->processedFlag = origin->processedFlag;
-//     fnew->groupId = origin->groupId;
-//     // fnew->removedFlag = origin->removedFlag;
-//     // add halfedge and face to mesh
-//     this->faces_.push_back(fnew);
-//     return hnew;
-// }
+    hnew->setNext(g->next());
+    oppo_hnew->setNext(h->next());
 
-// Halfedge* Mesh::erase_center_vertex(Halfedge* h) {
-//     Halfedge* g = h->next->opposite;
-//     Halfedge* hret = find_prev(h);
-//     while (g != h) {
-//         Halfedge* gprev = find_prev(g);
-//         remove_tip(gprev);
-//         if (g->face != h->face) {
-//             // eraseFacetByPointer(g->facet());
-//             g->face->setRemoved();
-//         }
-//         Halfedge* gnext = g->next->opposite;
-//         g->vertex->eraseHalfedgeByPointer(g);
-//         // g->end_vertex->eraseHalfedgeByPointer(g->opposite);
-//         g->setRemoved();
-//         g->opposite->setRemoved();
-//         g = gnext;
-//     }
-//     h->setRemoved();
-//     h->opposite->setRemoved();
-//     remove_tip(hret);
-//     h->vertex->eraseHalfedgeByPointer(h);
-//     h->end_vertex->halfedges.clear();
-//     h->end_vertex->setRemoved();
-//     // eraseVertexByPointer(h->end_vertex);
-//     h->face->reset(hret);
-//     return hret;
-// }
+    h->setNext(hnew);
+    g->setNext(oppo_hnew);
+    // create new face depend on vertexs
+    origin->reset(hnew);
+    fnew->reset(oppo_hnew);
+    fnew->setProcessedFlag(origin->processedFlag());
+    fnew->setGroupId(origin->groupId());
+    // fnew->removedFlag = origin->removedFlag;
+    // add halfedge and face to mesh
+    this->faces_.push_back(fnew);
+    return hnew;
+}
 
-// Halfedge* Mesh::create_center_vertex(Halfedge* h) {
-//     // Vertex* vnew = new Vertex();
-//     Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool();
-//     this->vertices_.push_back(vnew);
-//     Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(h->end_vertex, vnew, meshId);
-//     Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPool(vnew, h->end_vertex, meshId);
-//     // add new halfedge to current mesh and set opposite
-//     // set the next element
-//     // now the next of hnew and prev of oppo_new is unknowen
-//     insert_tip(hnew->opposite, h);
-//     Halfedge* g = hnew->opposite->next;
-//     std::vector<Halfedge*> origin_around_halfedge;
+Halfedge* Mesh::split_facet(Halfedge* h, Halfedge* g) {
+    Facet* origin = h->face();
+    // early expose
+    Facet* fnew = MCGAL::contextPool.allocateFaceFromPool(meshId_);
+    // create new halfedge
+    Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, h->end_vertex(), g->end_vertex());
+    Halfedge* oppo_hnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, g->end_vertex(), h->end_vertex());
+    // set the opposite
+    // set the connect information
 
-//     Halfedge* hed = hnew;
-//     while (g->next != hed) {
-//         Halfedge* gnew = MCGAL::contextPool.allocateHalfedgeFromPool(g->end_vertex, vnew, meshId);
-//         Halfedge* oppo_gnew = MCGAL::contextPool.allocateHalfedgeFromPool(vnew, g->end_vertex, meshId);
-//         origin_around_halfedge.push_back(g);
-//         gnew->next = hnew->opposite;
-//         insert_tip(gnew->opposite, g);
+    hnew->setNext(g->next());
+    oppo_hnew->setNext(h->next());
 
-//         g = gnew->opposite->next;
-//         hnew = gnew;
-//     }
-//     hed->next = hnew->opposite;
-//     h->face->reset(h);
-//     // collect all the halfedge
-//     for (Halfedge* hit : origin_around_halfedge) {
-//         Facet* face = MCGAL::contextPool.allocateFaceFromPool(hit, meshId);
-//         this->faces_.push_back(face);
-//     }
-//     return oppo_new;
-// }
+    h->setNext(hnew);
+    g->setNext(oppo_hnew);
+    // create new face depend on vertexs
+    origin->reset(hnew);
+    fnew->reset(oppo_hnew);
+    fnew->setProcessedFlag(origin->processedFlag());
+    fnew->setGroupId(origin->groupId());
+    // fnew->removedFlag = origin->removedFlag;
+    // add halfedge and face to mesh
+    this->faces_.push_back(fnew);
+    return hnew;
+}
 
-// Halfedge* Mesh::create_center_vertex(Halfedge* h, Point point) {
-//     // Vertex* vnew = new Vertex();
-//     Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(point, meshId);
-//     this->vertices_.push_back(vnew);
-//     Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(h->end_vertex, vnew, meshId);
-//     Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPool(vnew, h->end_vertex, meshId);
-//     // add new halfedge to current mesh and set opposite
-//     // set the next element
-//     // now the next of hnew and prev of oppo_new is unknowen
-//     insert_tip(hnew->opposite, h);
-//     Halfedge* g = hnew->opposite->next;
-//     std::vector<Halfedge*> origin_around_halfedge;
-//     origin_around_halfedge.reserve(5);
+Halfedge* Mesh::erase_center_vertex(Halfedge* h) {
+    Halfedge* g = h->next()->opposite();
+    Halfedge* hret = find_prev(h);
+    while (g != h) {
+        Halfedge* gprev = find_prev(g);
+        remove_tip(gprev);
+        if (g->face() != h->face()) {
+            // eraseFacetByPointer(g->facet());
+            g->face()->setRemoved();
+        }
+        Halfedge* gnext = g->next()->opposite();
+        g->vertex()->eraseHalfedgeByPointer(g);
+        // g->end_vertex->eraseHalfedgeByPointer(g->opposite);
+        g->setRemoved();
+        g->opposite()->setRemoved();
+        g = gnext;
+    }
+    h->setRemoved();
+    h->opposite()->setRemoved();
+    remove_tip(hret);
+    h->vertex()->eraseHalfedgeByPointer(h);
+    h->end_vertex()->halfedges().clear();
+    h->end_vertex()->setRemoved();
+    // eraseVertexByPointer(h->end_vertex);
+    h->face()->reset(hret);
+    return hret;
+}
 
-//     Halfedge* hed = hnew;
-//     while (g->next != hed) {
-//         Halfedge* gnew = MCGAL::contextPool.allocateHalfedgeFromPool(g->end_vertex, vnew, meshId);
-//         Halfedge* oppo_gnew = MCGAL::contextPool.allocateHalfedgeFromPool(vnew, g->end_vertex, meshId);
-//         origin_around_halfedge.push_back(g);
-//         gnew->next = hnew->opposite;
-//         insert_tip(gnew->opposite, g);
+Halfedge* Mesh::create_center_vertex(Halfedge* h) {
+    // Vertex* vnew = new Vertex();
+    Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(meshId_);
+    this->vertices_.push_back(vnew);
+    Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, h->end_vertex(), vnew);
+    Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, vnew, h->end_vertex());
+    // add new halfedge to current mesh and set opposite
+    // set the next element
+    // now the next of hnew and prev of oppo_new is unknowen
+    insert_tip(hnew->opposite(), h);
+    Halfedge* g = hnew->opposite()->next();
+    std::vector<Halfedge*> origin_around_halfedge;
 
-//         g = gnew->opposite->next;
-//         hnew = gnew;
-//     }
-//     hed->next = hnew->opposite;
-//     h->face->reset_without_init(h);
-//     // collect all the halfedge
-//     for (Halfedge* hit : origin_around_halfedge) {
-//         Facet* face = MCGAL::contextPool.allocateFaceFromPool(hit, meshId);
-//         this->faces_.push_back(face);
-//     }
-//     return oppo_new;
-// }
+    Halfedge* hed = hnew;
+    while (g->next() != hed) {
+        Halfedge* gnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, g->end_vertex(), vnew);
+        Halfedge* oppo_gnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, vnew, g->end_vertex());
+        origin_around_halfedge.push_back(g);
+        gnew->setNext(hnew->opposite());
+        insert_tip(gnew->opposite(), g);
 
-// #ifdef DECODE
-// Halfedge* Mesh::create_center_vertex_without_init(Halfedge* h, Point point) {
-//     // Vertex* vnew = new Vertex();
-//     Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(point, meshId);
-//     // this->vertices_.push_back(vnew);
-//     Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(h->end_vertex, vnew, meshId);
-//     Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(vnew, h->end_vertex, meshId);
-//     hnew->opposite = oppo_new;
-//     oppo_new->opposite = hnew;
-//     // add new halfedge to current mesh and set opposite
-//     // set the next element
-//     // now the next of hnew and prev of oppo_new is unknowen
-//     insert_tip(hnew->opposite, h);
-//     Halfedge* g = hnew->opposite->next;
-//     // std::vector<Halfedge*> origin_around_halfedge;
-//     // origin_around_halfedge.reserve(5);
+        g = gnew->opposite()->next();
+        hnew = gnew;
+    }
+    hed->setNext(hnew->opposite());
+    h->face()->reset(h);
+    // collect all the halfedge
+    for (Halfedge* hit : origin_around_halfedge) {
+        Facet* face = MCGAL::contextPool.allocateFaceFromPool(meshId_, hit);
+        this->faces_.push_back(face);
+    }
+    return oppo_new;
+}
 
-//     Halfedge* hed = hnew;
-//     while (g->next != hed) {
-//         Halfedge* gnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(g->end_vertex, vnew, meshId);
-//         Halfedge* oppo_gnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(vnew, g->end_vertex, meshId);
+Halfedge* Mesh::create_center_vertex(Halfedge* h, Point point) {
+    // Vertex* vnew = new Vertex();
+    Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(meshId_, point);
+    this->vertices_.push_back(vnew);
+    Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, h->end_vertex(), vnew);
+    Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, vnew, h->end_vertex());
+    // add new halfedge to current mesh and set opposite
+    // set the next element
+    // now the next of hnew and prev of oppo_new is unknowen
+    insert_tip(hnew->opposite(), h);
+    Halfedge* g = hnew->opposite()->next();
+    std::vector<Halfedge*> origin_around_halfedge;
+    origin_around_halfedge.reserve(5);
 
-//         gnew->opposite = oppo_gnew;
-//         oppo_gnew->opposite = gnew;
+    Halfedge* hed = hnew;
+    while (g->next() != hed) {
+        Halfedge* gnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, g->end_vertex(), vnew);
+        Halfedge* oppo_gnew = MCGAL::contextPool.allocateHalfedgeFromPool(meshId_, vnew, g->end_vertex());
+        origin_around_halfedge.push_back(g);
+        gnew->setNext(hnew->opposite());
+        insert_tip(gnew->opposite(), g);
 
-//         gnew->next = hnew->opposite;
-//         insert_tip(gnew->opposite, g);
-//         Facet* face = MCGAL::contextPool.allocateFaceFromPool(g, meshId);
-//         // origin_around_halfedge.push_back(g);
-//         // this->faces_.push_back(face);
-//         g = gnew->opposite->next;
-//         hnew = gnew;
-//     }
-//     hed->next = hnew->opposite;
-//     h->face->reset_without_init(h);
-//     // collect all the halfedge
-//     // for (Halfedge* hit : origin_around_halfedge) {
-//     //     Facet* face = MCGAL::contextPool.allocateFaceFromPool(hit, meshId);
-//     //     this->faces_.push_back(face);
-//     // }
-//     return oppo_new;
-// }
+        g = gnew->opposite()->next();
+        hnew = gnew;
+    }
+    hed->setNext(hnew->opposite());
+    h->face()->reset_without_init(h);
+    // collect all the halfedge
+    for (Halfedge* hit : origin_around_halfedge) {
+        Facet* face = MCGAL::contextPool.allocateFaceFromPool(meshId_, hit);
+        this->faces_.push_back(face);
+    }
+    return oppo_new;
+}
+
+Halfedge* Mesh::create_center_vertex_without_init(Halfedge* h, Point point) {
+    // Vertex* vnew = new Vertex();
+    Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(meshId_, point);
+    // this->vertices_.push_back(vnew);
+    Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, h->end_vertex(), vnew);
+    Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, vnew, h->end_vertex());
+    hnew->setOpposite(oppo_new);
+    oppo_new->setOpposite(hnew);
+    // add new halfedge to current mesh and set opposite
+    // set the next element
+    // now the next of hnew and prev of oppo_new is unknowen
+    insert_tip(hnew->opposite(), h);
+    Halfedge* g = hnew->opposite()->next();
+    // std::vector<Halfedge*> origin_around_halfedge;
+    // origin_around_halfedge.reserve(5);
+
+    Halfedge* hed = hnew;
+    while (g->next() != hed) {
+        Halfedge* gnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, g->end_vertex(), vnew);
+        Halfedge* oppo_gnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, vnew, g->end_vertex());
+
+        gnew->setOpposite(oppo_gnew);
+        oppo_gnew->setOpposite(gnew);
+
+        gnew->setNext(hnew->opposite());
+        insert_tip(gnew->opposite(), g);
+        Facet* face = MCGAL::contextPool.allocateFaceFromPool(meshId_, g);
+        // origin_around_halfedge.push_back(g);
+        // this->faces_.push_back(face);
+        g = gnew->opposite()->next();
+        hnew = gnew;
+    }
+    hed->setNext(hnew->opposite());
+    h->face()->reset_without_init(h);
+    // collect all the halfedge
+    // for (Halfedge* hit : origin_around_halfedge) {
+    //     Facet* face = MCGAL::contextPool.allocateFaceFromPool(hit, meshId);
+    //     this->faces_.push_back(face);
+    // }
+    return oppo_new;
+}
 // #endif
 
 inline void Mesh::close_tip(Halfedge* h, Vertex* v) const {
@@ -969,10 +1029,10 @@ bool Mesh::loadOFF(std::string path) {
     file << fp.rdbuf();  // Read the entire file content into a stringstream
 
     std::string format;
-    int nb_vertices, nb_faces, nb_edges;
+
     file >> format >> nb_vertices >> nb_faces >> nb_edges;
 
-    MCGAL::contextPool.registerPool(nb_vertices, nb_faces * 3, nb_faces);
+    meshId_ = MCGAL::contextPool.registerPool(nb_vertices, nb_faces * 3, nb_faces);
 
     if (format != "OFF") {
         std::cerr << "Error: Invalid OFF file format" << std::endl;
@@ -1092,6 +1152,83 @@ void Mesh::garbage_collection() {
     vertices_.resize(std::distance(vertices_.begin(), newVEnd));
 }
 
+void Mesh::submesh_dumpto_oldtype(std::string path, int groupId) {
+    auto newEnd = std::remove_if(faces_.begin(), faces_.end(), isFacetRemovable);
+    faces_.resize(std::distance(faces_.begin(), newEnd));
+
+    auto newVEnd = std::remove_if(vertices_.begin(), vertices_.end(), isVertexRemovable);
+    vertices_.resize(std::distance(vertices_.begin(), newVEnd));
+
+    std::set<Vertex*> vertices;
+    std::vector<Facet*> faces;
+    // std::copy_if(std::begin(vertices_), std::end(vertices_), std::back_inserter(vertices),
+    //              [&](Vertex* v) { return v->groupId() == groupId; });
+    std::copy_if(std::begin(faces_), std::end(faces_), std::back_inserter(faces), [&](Facet* f) { return f->groupId() == groupId; });
+    for (Facet* f : faces) {
+        for (Facet::halfedge_iterator it = f->halfedges_begin(); it != f->halfedges_end(); ++it) {
+            vertices.insert((*it)->vertex());
+        }
+    }
+
+    std::ofstream offFile(path);
+    if (!offFile.is_open()) {
+        std::cerr << "Error opening file: " << path << std::endl;
+        return;
+    }
+    // write header
+    offFile << "OFF\n";
+    offFile << vertices.size() << " " << faces.size() << " 0\n";
+    offFile << "\n";
+    // write vertex
+    int id = 0;
+    for (Vertex* vertex : vertices) {
+        if (vertex->isRemoved())
+            continue;
+        offFile << vertex->x() << " " << vertex->y() << " " << vertex->z() << "\n";
+        vertex->setVid(id++);
+    }
+
+    for (Facet* face : faces) {
+        if (face->isRemoved())
+            continue;
+
+        int num = 0;
+        // offFile << face->vertices_.size() << " ";
+        Halfedge* hst = face->proxyHalfedge();
+        Halfedge* hed = face->proxyHalfedge();
+        bool fg = false;
+        do {
+            // offFile << hst->vertex->getVid() << " ";
+            num++;
+            if (hst->vertex()->isRemoved()) {
+                fg = true;
+            }
+            hst = hst->next();
+        } while (hst != hed);
+        if (fg) {
+            offFile << 3 << " ";
+            offFile << 0 << " " << 0 << " " << 0 << " ";
+            offFile << "\n";
+            continue;
+        }
+        offFile << num << " ";
+        do {
+            offFile << hst->vertex()->vid() << " ";
+            hst = hst->next();
+        } while (hst != hed);
+
+#    ifdef COLOR
+        if (face->groupId() >= 0) {
+            offFile << colors[face->groupId()][0] << " " << colors[face->groupId()][1] << " " << colors[face->groupId()][2] << " ";
+        } else {
+            offFile << 0 << " " << 0 << " " << 0 << " ";
+        }
+#    endif
+        offFile << "\n";
+    }
+    offFile.close();
+}
+
 void Mesh::dumpto_oldtype(std::string path) {
     auto newEnd = std::remove_if(faces_.begin(), faces_.end(), isFacetRemovable);
     faces_.resize(std::distance(faces_.begin(), newEnd));
@@ -1147,8 +1284,8 @@ void Mesh::dumpto_oldtype(std::string path) {
         } while (hst != hed);
 
 #    ifdef COLOR
-        if (face->groupId >= 0) {
-            offFile << colors[face->groupId][0] << " " << colors[face->groupId][1] << " " << colors[face->groupId][2] << " ";
+        if (face->groupId() >= 0) {
+            offFile << colors[face->groupId()][0] << " " << colors[face->groupId()][1] << " " << colors[face->groupId()][2] << " ";
         } else {
             offFile << 0 << " " << 0 << " " << 0 << " ";
         }

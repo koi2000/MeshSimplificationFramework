@@ -1,4 +1,4 @@
-#include "./include/PartialSplitter.h"
+#include "PartialSplitter.h"
 #include <algorithm>
 #include <bitset>
 #include <map>
@@ -288,6 +288,8 @@ int PartialSplitter::markBoundry() {
         if (hit->face()->groupId() != hit->opposite()->face()->groupId()) {
             hit->setBoundary();
             hit->opposite()->setBoundary();
+            hit->vertex()->setBoundary();
+            hit->end_vertex()->setBoundary();
         }
     }
     return idx;

@@ -64,6 +64,32 @@ void Halfedge::reset(Vertex* v1, Vertex* v2) {
     }
 }
 
+Halfedge* Halfedge::find_prev() {
+    MCGAL::Halfedge* g = this;
+    while (g->next() != this) {
+        g = g->next();
+    }
+    return g;
+}
+
+Halfedge* Halfedge::next_boundary(int ogroupId) {
+    MCGAL::Halfedge* boundary = this;
+    MCGAL::Halfedge* nxt = boundary->next();
+    if (nxt->isBoundary()) {
+        return nxt;
+    }
+    nxt = boundary->next()->opposite()->next();
+    if (nxt->isBoundary()) {
+        return nxt;
+    }
+    for (MCGAL::Halfedge* hit : boundary->end_vertex()->halfedges()) {
+        if (hit->opposite() != boundary && hit->isBoundary()) {
+            return hit;
+        }
+    }
+    return nullptr;
+}
+
 void Halfedge::setVertex(Vertex* v1, Vertex* v2) {
     vertex_ = v1;
     end_vertex_ = v2;

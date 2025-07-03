@@ -19,7 +19,9 @@ class Vertex;
 class Vertex : public Point {
     enum RemovedFlag { NotRemoved, Removed };
     enum ProcessedFlag { NotProcessed, Processed };
+    enum BoundaryFlag { NotBoundary, Boundary };
     enum CollapsedFlag { NotCollapsed, Collapsed };
+    enum ConqueredFlag { Unconquered = 0, Conquered = 1 };
 
   public:
     Vertex() : Point() {}
@@ -82,6 +84,10 @@ class Vertex : public Point {
         return Point(this->v[0], this->v[1], this->v[2]);
     }
 
+    Point* pointptr() {
+        return (Point*) this;
+    } 
+
     void setPoint(const Point& p) {
         this->v[0] = p.x();
         this->v[1] = p.y();
@@ -102,6 +108,23 @@ class Vertex : public Point {
 
     virtual void resetState() {
         this->processedFlag_ = NotProcessed;
+        this->conquredFlag_ = Unconquered;
+    }
+
+    inline bool isConquered() const {
+        return conquredFlag_ == Conquered;
+    }
+
+    inline void setConquered() {
+        conquredFlag_ = Conquered;
+    }
+
+    inline bool isBoundary() const {
+        return boundaryFlag_ == Boundary;
+    }
+
+    inline void setBoundary() {
+        boundaryFlag_ = Boundary;
     }
 
     inline void setRemoved() {
@@ -160,6 +183,8 @@ class Vertex : public Point {
     RemovedFlag removedFlag_ = NotRemoved;
     ProcessedFlag processedFlag_ = NotProcessed;
     CollapsedFlag collapsedFlag_ = NotCollapsed;
+    ConqueredFlag conquredFlag_ = Unconquered;
+    BoundaryFlag boundaryFlag_ = NotBoundary;
 
     VertexSplitNode* vsplitNode_;
 };

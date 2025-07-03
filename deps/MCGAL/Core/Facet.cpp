@@ -222,6 +222,14 @@ bool Facet::operator==(const Facet& rhs) const {
     return this->equal(rhs);
 }
 
+Point Facet::getRemovedVertexPos() const {
+    return removedVertexPos;
+};
+
+void Facet::setRemovedVertexPos(Point p) {
+    removedVertexPos = p;
+};
+
 int Facet::facet_degree() {
     return vertices_.size();
 }

@@ -70,6 +70,35 @@ file(GLOB_RECURSE SIMPLE_DECODER_FILES
     "src/SimpleDecoder.cpp"
 )
 
+file(GLOB_RECURSE ENCODERS 
+    "src/encoder/*.h"
+    "src/encoder/*.cpp"
+)
+
+file(GLOB_RECURSE DECODERS 
+    "src/decoder/*.h"
+    "src/decoder/*.cpp"
+)
+
+file(GLOB_RECURSE OPERATOS 
+    "src/operator/*.h"
+    "src/operator/*.cpp"
+)
+
+file(GLOB_RECURSE COMMONS 
+    "src/common/*.h"
+)
+
+file(GLOB_RECURSE SPLITTERS  
+    "src/splitter/*.h"
+    "src/splitter/*.cpp"
+)
+
+file(GLOB_RECURSE FRAMEWORK
+    "src/ProgressiveSimplificationFramework.h"
+    "src/ProgressiveSimplificationFramework.cpp"
+)
+
 find_package(OpenMP REQUIRED)
 find_package(CUDA REQUIRED)
 
@@ -78,18 +107,21 @@ find_library(JEMALLOC_LIB jemalloc REQUIRED)
 set(LIBS_DEBUG libOpenMeshCore.a libOpenMeshCore.so libOpenMeshTools.a libOpenMeshTools.so)
 set(LIBS_RELEASE libOpenMeshCore.a libOpenMeshCore.so libOpenMeshTools.a libOpenMeshTools.so)
 
-add_executable(SimpleEncoderTest tools/SimpleEncoderTest.cpp ${SIMPLE_ENCODER_FILES} ${MINI_CGAL_FILES})
-target_include_directories(SimpleEncoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
-target_link_libraries(SimpleEncoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
+# add_executable(SimpleEncoderTest tools/SimpleEncoderTest.cpp ${SIMPLE_ENCODER_FILES} ${MINI_CGAL_FILES})
+# target_include_directories(SimpleEncoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
+# target_link_libraries(SimpleEncoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
 
-add_executable(MultiSimpleEncoderTest tools/MultiSimpleEncoderTest.cpp ${MULTI_SIMPLE_ENCODER_FILES} ${MINI_CGAL_FILES})
-target_include_directories(MultiSimpleEncoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
-target_link_libraries(MultiSimpleEncoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
+# add_executable(MultiSimpleEncoderTest tools/MultiSimpleEncoderTest.cpp ${MULTI_SIMPLE_ENCODER_FILES} ${MINI_CGAL_FILES})
+# target_include_directories(MultiSimpleEncoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
+# target_link_libraries(MultiSimpleEncoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
 
-add_executable(SimpleDecoderTest tools/SimpleDecoderTest.cpp ${SIMPLE_DECODER_FILES} ${MINI_CGAL_FILES})
-target_include_directories(SimpleDecoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
-target_link_libraries(SimpleDecoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
+# add_executable(SimpleDecoderTest tools/SimpleDecoderTest.cpp ${SIMPLE_DECODER_FILES} ${MINI_CGAL_FILES})
+# target_include_directories(SimpleDecoderTest PUBLIC "deps/MCGAL/Core/include" "src/include")
+# target_link_libraries(SimpleDecoderTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
 
+add_executable(FrameworkTest tools/FrameworkTest.cpp ${ENCODERS} ${DECODERS} ${OPERATOS} ${COMMONS} ${SPLITTERS} ${FRAMEWORK} ${MINI_CGAL_FILES})
+target_include_directories(FrameworkTest PUBLIC "deps/MCGAL/Core/include" "src/include")
+target_link_libraries(FrameworkTest OpenMP::OpenMP_CXX  ${JEMALLOC_LIB} ${LIBS_DEBUG})
 
 get_property(targetIncludes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
 message(STATUS "Target Include Directories: ${targetIncludes}")

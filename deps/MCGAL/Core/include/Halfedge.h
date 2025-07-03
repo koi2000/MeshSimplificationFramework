@@ -21,12 +21,17 @@ class Halfedge {
 
     void reset_without_pushback(Vertex* v1, Vertex* v2);
 
+    Halfedge* find_prev();
+
+    Halfedge* next_boundary(int ogroupId);
+
     inline void resetBfsFlag() {
         processedFlag_ = NotProcessed;
     }
 
     inline void resetState() {
         processedFlag_ = NotProcessed;
+        addedFlag_ = Original;
     }
 
     Point getRemovedVertexPos() const;
@@ -54,6 +59,14 @@ class Halfedge {
 
     inline void setNotBoundary() {
         boundaryFlag_ = NotBoundary;
+    }
+
+    inline bool isVisited(int current_version) const {
+        return visited_version == current_version;
+    }
+
+    inline void setVisited(int current_version) {
+        visited_version = current_version;
     }
 
     inline bool isProcessed() const {
@@ -139,11 +152,37 @@ class Halfedge {
 
     float length();
 
+    inline void setAdded() {
+        assert(addedFlag_ == Original);
+        addedFlag_ = Added;
+    }
+
+    inline bool isAdded() const {
+        return addedFlag_ == Added;
+    }
+
+    inline bool isOriginal() const {
+        return addedFlag_ == Original;
+    }
+    inline void setOriginal() {
+        addedFlag_ = Original;
+    }
+
+    inline bool hasRemovedVertex() {
+        return removedVertex_ == nullptr;
+    }
+
+    void setRemovedVertex(Point* v) {
+        this->removedVertex_ = v;
+    }
+
   private:
     enum ProcessedFlag { NotProcessed, Processed };
     enum RemovedFlag { NotRemoved, Removed };
     enum BoundaryFlag { NotBoundary, IsBoundary };
+    enum AddedFlag { Original, Added };
 
+    AddedFlag addedFlag_ = Original;
     ProcessedFlag processedFlag_ = NotProcessed;
     RemovedFlag removedFlag_ = NotRemoved;
     BoundaryFlag boundaryFlag_ = NotBoundary;
@@ -153,6 +192,9 @@ class Halfedge {
     Facet* face_ = nullptr;
     Halfedge* next_ = nullptr;
     Halfedge* opposite_ = nullptr;
+
+    Point* removedVertex_ = nullptr;
+    int visited_version = 0;
 
     int poolId_ = -1;
     int meshId_ = -1;

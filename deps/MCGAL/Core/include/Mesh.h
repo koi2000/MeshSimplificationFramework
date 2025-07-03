@@ -46,7 +46,9 @@ class Mesh {
         this->meshId_ = meshId;
     }
 
-    bool is_collapse_ok(MCGAL::Halfedge* v0v1);
+    static bool is_collapse_ok(MCGAL::Halfedge* v0v1);
+
+    static bool IsFlipped(MCGAL::Halfedge* edge, const MCGAL::Point& ptTarget);
 
     // element operating
     Vertex* add_vertex(Vertex* vertex);
@@ -55,6 +57,7 @@ class Mesh {
     void eraseFacetByPointer(Facet* facet);
     void eraseVertexByPointer(Vertex* vertex);
     void dumpto_oldtype(std::string path);
+    void submesh_dumpto_oldtype(std::string path, int groupId);
 
     Facet* remove_vertex(Vertex* v);
     Halfedge* merge_edges(Vertex* v);
@@ -112,6 +115,7 @@ class Mesh {
     JemallocVector<Vertex*> vertices_;
     JemallocVector<Facet*> faces_;
     int meshId_ = -1;
+    int nb_vertices, nb_faces, nb_edges;
 };
 }  // namespace MCGAL
 #endif
