@@ -24,6 +24,7 @@
  * 2. 判断isRemovable()
  * 3. 贪心处理 or error based
  * 4. error需要给用户留下可以自定义的接口
+ * 5. 想到了如何兼容progressive和single rate，用户开启可允许重复压缩后，可以新设置一个参数阈值，来指定这一次压缩可进行的程度。
  */
 class ProgressiveSimplificationFramework {
   private:
@@ -38,6 +39,9 @@ class ProgressiveSimplificationFramework {
     EdgeCollapseGreedyEncoder edgeCollapseGreedyEncoder;
     EdgeCollapseFastQuardicEncoder edgeCollapseFastQuardicEncoder;
     EdgeCollapsePriorityErrorEncoder edgeCollapsePriorityErrorEncoder;
+
+    char* buffer;
+    int dataOffset = 0;
 
     void encode_group();
     void priority_based_encode(int groupId);
@@ -56,6 +60,8 @@ class ProgressiveSimplificationFramework {
     void dumpGraphToBuffer();
 
     void dumpToFile(std::string path);
+
+    void writeBaseMesh();
 
     void writeBaseMesh(int groupId);
 

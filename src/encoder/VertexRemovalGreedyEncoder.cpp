@@ -1,6 +1,8 @@
 #include "VertexRemovalGreedyEncoder.h"
 #include "../common/BufferUtils.h"
 #include "../common/Logutil.h"
+#include "BFSVersionManager.h"
+#include "MeshUtils.h"
 #include "biops.h"
 #include <fstream>
 #include <iostream>
@@ -14,6 +16,7 @@ void VertexRemovalGreedyEncoder::encode(MCGAL::Mesh* mesh, MCGAL::Halfedge* seed
     this->seed = seed;
     this->graph = graph;
     this->triPoints = triPoints;
+    this->groupId = groupId;
     encodeInsideOp(mesh, seed);
     if (encode_boundry) {
         encodeBoundaryOp(groupId);
@@ -57,8 +60,255 @@ bool VertexRemovalGreedyEncoder::encodeInsideOp(MCGAL::Mesh* mesh, MCGAL::Halfed
             vertexCut(mesh, boundaryIds, gateQueue, unconqueredVertexHE);
         }
     }
+    encodeSymbolOp();
     return true;
 }
+
+// void VertexRemovalGreedyEncoder::encodeBoundaryOp(int groupId) {
+//     std::unordered_map<int, std::vector<Node>>& nodes = graph->getNode(groupId);
+//     for (auto& [neighbourId, nodeArr] : nodes) {
+//         for (auto& node : nodeArr) {
+//             if (node.isVisiable()) {
+//                 continue;
+//             }
+//             node.setVisiable();
+//             int poolId = node.st;
+//             MCGAL::Vertex* vt = MCGAL::contextPool.getVertexByIndex(meshId, poolId);
+//             MCGAL::Halfedge* boundary = nullptr;
+//             for (MCGAL::Halfedge* hit : vt->halfedges()) {
+//                 if (hit->isBoundary() && hit->end_vertex()->poolId() == node.ed) {
+//                     boundary = hit;
+//                     break;
+//                 }
+//             }
+//             std::unordered_map<int, std::vector<Node>>& neighbour_nodes = graph->getNode(neighbourId);
+//             for (auto& [key, nds] : neighbour_nodes) {
+//                 if (key == groupId) {
+//                     for (auto& nd : nds) {
+//                         if (nd.st == node.stop) {
+//                             nd.setVisiable();
+//                             break;
+//                         }
+//                     }
+//                 }
+//             }
+//             int stopId = node.stop;
+//             do {
+//                 if (boundaryRemovableInVertexRemoval(groupId, neighbourId, boundary)) {
+//                     if (boundary->next()->isBoundary()) {
+//                         int oriRemovedVid = 0;
+//                         MCGAL::Vertex* v1 = nullptr;
+//                         MCGAL::Vertex* v2 = nullptr;
+//                         MCGAL::Halfedge* new_boundary = nullptr;
+//                         if (boundary->face()->facet_degree() == 3) {
+//                             // 将这个面的groupId设置为opposite的groupId
+//                             boundary->face()->setGroupId(boundary->opposite()->face()->groupId());
+//                             // 取消旧边界
+//                             boundary->setNotBoundary();
+//                             boundary->opposite()->setNotBoundary();
+//                             boundary->next()->setNotBoundary();
+//                             boundary->next()->opposite()->setNotBoundary();
+//                             // 设置新边界
+//                             new_boundary = boundary->next()->next()->opposite();
+//                             new_boundary->setRemovedVertex(boundary->end_vertex()->pointptr());
+//                             new_boundary->setBoundary();
+//                             new_boundary->opposite()->setBoundary();
+//                         } else if (boundary->face()->facet_degree() > 3) {
+//                             // } else if (false) {
+//                             // 新建一个面
+//                             new_boundary = MCGAL::contextPool.allocateHalfedgeFromPool(meshId, boundary->vertex(), boundary->next()->end_vertex());
+//                             MCGAL::Halfedge* new_boundary_opposite = MCGAL::contextPool.allocateHalfedgeFromPool(meshId, boundary->next()->end_vertex(), boundary->vertex());
+//                             // 取消旧边界
+//                             boundary->setNotBoundary();
+//                             boundary->opposite()->setNotBoundary();
+//                             boundary->next()->setNotBoundary();
+//                             boundary->next()->opposite()->setNotBoundary();
+//                             MCGAL::Halfedge* boundary_prev = find_prev(boundary);
+//                             boundary_prev->setNext(new_boundary);
+//                             new_boundary->setNext(boundary->next()->next());
+//                             new_boundary_opposite->setNext(boundary);
+//                             boundary->next()->setNext(new_boundary_opposite);
+//                             // 申请新面
+//                             MCGAL::Facet* new_face = MCGAL::contextPool.allocateFaceFromPool(meshId, new_boundary_opposite);
+//                             new_face->setGroupId(boundary->opposite()->face()->groupId());
+//                             // 从大的多边形中移除小的多边形
+//                             new_boundary->setRemovedVertex(boundary->end_vertex()->pointptr());
+//                             new_boundary->setBoundary();
+//                             new_boundary->opposite()->setBoundary();
+//                             // 减除一个三角形
+//                             boundary_prev->face()->reset(boundary_prev);
+//                         }
+//                         // 获得对面的groupId
+//                         MCGAL::Halfedge* h = boundary->opposite();
+//                         MCGAL::Halfedge* end(h);
+//                         int removed = 0;
+//                         do {
+//                             MCGAL::Facet* f = h->face();
+//                             assert(!f->isConquered() && !f->isRemoved());
+//                             if (f->facet_degree() > 3) {
+//                                 MCGAL::Halfedge* hSplit(h->next());
+//                                 for (; hSplit->next()->next() != h; hSplit = hSplit->next())
+//                                     ;
+//                                 MCGAL::Halfedge* hCorner = mesh->split_facet_non_meshId(h, hSplit);
+//                                 // hCorner->setBoundaryAdded();
+//                             }
+//                             h->end_vertex()->setConquered();
+//                             removed++;
+//                         } while ((h = h->opposite()->next()) != end);
+//                         MCGAL::Halfedge* newH = mesh->erase_center_vertex(boundary);
+//                         newH->face()->setGroupId(neighbourId);
+//                         boundary = new_boundary;
+//                     }
+//                 }
+//                 if (boundary->end_vertex()->poolId() == stopId) {
+//                     break;
+//                 }
+//                 boundary = next_boundary(neighbourId, boundary);
+//             } while (boundary->end_vertex()->poolId() != stopId);
+//         }
+//     }
+// }
+
+void VertexRemovalGreedyEncoder::encodeBoundaryOp(int groupId) {
+    // vertex removal
+    std::unordered_map<int, std::vector<Node>>& nodes = graph->getNode(groupId);
+    for (auto& [neighbourId, nodeArr] : nodes) {
+        for (auto& node : nodeArr) {
+            if (node.isVisiable()) {
+                continue;
+            }
+            node.setVisiable();
+            int poolId = node.st;
+            MCGAL::Vertex* vt = MCGAL::contextPool.getVertexByIndex(meshId, poolId);
+            MCGAL::Halfedge* boundary = nullptr;
+            for (MCGAL::Halfedge* hit : vt->halfedges()) {
+                if (hit->isBoundary()) {
+                    if (hit->end_vertex()->poolId() == node.ed) {
+                        boundary = hit;
+                        break;
+                    }
+                }
+            }
+            std::unordered_map<int, std::vector<Node>>& neighbour_nodes = graph->getNode(neighbourId);
+            for (auto& [key, nds] : neighbour_nodes) {
+                if (key == groupId) {
+                    for (auto& nd : nds) {
+                        if (nd.st == node.stop) {
+                            nd.setVisiable();
+                            break;
+                        }
+                    }
+                }
+            }
+            int stopId = node.stop;
+            do {
+                if (boundaryRemovableInVertexRemoval(groupId, neighbourId, boundary)) {
+                    MCGAL::Halfedge* next_boundary = MCGAL::next_boundary(neighbourId, boundary);
+                    // try use split facet to triangulation and use vertex removal to compress
+                    MCGAL::Vertex* v = boundary->end_vertex();
+                    assert(v->vertex_degree() > 2);
+                    MCGAL::Halfedge* h = boundary->opposite();
+                    MCGAL::Halfedge* end(h);
+                    // 遍历找到两个点之间的距离
+                    MCGAL::Vertex* v1 = boundary->vertex();
+                    MCGAL::Vertex* v2 = next_boundary->end_vertex();
+                    MCGAL::Halfedge* st = boundary->opposite();
+                    MCGAL::Halfedge* ed = st;
+                    int opposite_number = 0;
+                    int number = 0;
+                    while (st->end_vertex() != v2) {
+                        opposite_number++;
+                        st = MCGAL::find_prev(st->opposite());
+                    }
+                    number = st->vertex()->halfedges().size() - opposite_number;
+
+                    // 尝试将周围的所有大于等于四的面片提前处理
+                    do {
+                        MCGAL::Facet* f = h->face();
+                        if (f->facet_degree() > 3) {
+                            MCGAL::Halfedge* hSplit(h->next());
+                            for (; hSplit->next()->next() != h; hSplit = hSplit->next())
+                                ;
+                            MCGAL::Halfedge* hCorner = mesh->split_facet_non_meshId(h, hSplit);
+                            hCorner->setAdded();
+                        }
+                    } while ((h = h->opposite()->next()) != end);
+                    MCGAL::Point vPos = boundary->end_vertex()->point();
+                    MCGAL::Halfedge* hNewFace = mesh->erase_center_vertex(boundary);
+                    MCGAL::Facet* added_face = hNewFace->face();
+                    added_face->setGroupId(groupId);
+                    // added_face->setSplittable();
+                    // added_face->setRemovedVertexPos(vPos);
+                }
+                if (boundary->end_vertex()->poolId() == stopId) {
+                    break;
+                }
+                boundary = next_boundary(neighbourId, boundary);
+            } while (boundary->end_vertex()->poolId() != stopId);
+        }
+    }
+}
+
+void VertexRemovalGreedyEncoder::encodeSymbolOp() {
+    std::deque<char> facetSym;
+    std::deque<char> halfedgeSym;
+    std::deque<MCGAL::Point> points;
+    std::queue<int> gateQueue;
+    gateQueue.push(seed->face()->poolId());
+    int current_version = MCGAL::BfsVersionMananger::current_version++;
+    while (!gateQueue.empty()) {
+        int fid = gateQueue.front();
+        MCGAL::Facet* f = MCGAL::contextPool.getFacetByIndex(mesh->meshId(), fid);
+        gateQueue.pop();
+        if (f->isVisited(current_version) || f->isRemoved()) {
+            continue;
+        }
+        f->setVisited(current_version);
+        int vpoolId = -1;
+        // int minVid = -1;
+        MCGAL::Vertex* minV = (*f->halfedges_begin())->vertex();
+        MCGAL::Halfedge* hIt = (*f->halfedges_begin());
+        for (auto it = f->halfedges_begin(); it != f->halfedges_end(); it++) {
+            MCGAL::Vertex* v = (*it)->vertex();
+            if (v > minV) {
+                minV = v;
+                hIt = (*it);
+            }
+        }
+        MCGAL::Halfedge* h = hIt;
+        unsigned sym = f->isSplittable();
+        facetSym.push_back(sym);
+
+        if (sym) {
+            MCGAL::Point rmved = f->getRemovedVertexPos();
+            points.push_back(rmved);
+        }
+        do {
+            unsigned sym;
+            if (hIt->isOriginal()) {
+                sym = 0;
+            } else {
+                sym = 1;
+            }
+            halfedgeSym.push_back(sym);
+            MCGAL::Halfedge* hOpp = hIt->opposite();
+            if (hOpp == nullptr) {
+                hIt = hIt->next();
+                continue;
+            }
+            // 对方没有被处理，且该边不是边界
+            if (!hOpp->face()->isVisited(current_version) && !hIt->isBoundary() && !hOpp->isBoundary() && hOpp->face()->groupId() == groupId) {
+                gateQueue.push(hOpp->face()->poolId());
+            }
+            hIt = hIt->next();
+        } while (hIt != h);
+    }
+    connectFaceSyms[groupId].push_back(facetSym);
+    connectEdgeSyms[groupId].push_back(halfedgeSym);
+    facetPointSyms[groupId].push_back(points);
+}
+
+void VertexRemovalGreedyEncoder::encodeBoundarySymbolOp() {}
 
 MCGAL::Halfedge* VertexRemovalGreedyEncoder::vertexCut(MCGAL::Mesh* submesh, std::set<int>& boundaryIds, std::queue<int>& gateQueue, MCGAL::Halfedge* startH) {
     MCGAL::Vertex* v = startH->end_vertex();
@@ -105,20 +355,22 @@ MCGAL::Halfedge* VertexRemovalGreedyEncoder::vertexCut(MCGAL::Mesh* submesh, std
 
 bool VertexRemovalGreedyEncoder::boundaryRemovableInVertexRemoval(int inner, int outer, MCGAL::Halfedge* hit) {
     assert(hit->isBoundary());
+    // 边界点不能被压缩
     if (triPoints->count(hit->vertex()) || triPoints->count(hit->end_vertex())) {
         return false;
     }
+    // 被压缩过的不能再次被压缩
     if (hit->isBoundary() && hit->next()->isBoundary()) {
         if (hit->hasRemovedVertex() || hit->next()->hasRemovedVertex()) {
             return false;
         }
     }
     MCGAL::Vertex* v = hit->end_vertex();
-
+    // seed其实顶点不能被压缩
     if (v->poolId() == seed->vertex()->poolId() || v->poolId() == seed->end_vertex()->poolId()) {
         return false;
     }
-
+    // 大于等于8度的顶点不能被压缩
     if (!v->isConquered() && v->vertex_degree() > 2 && v->vertex_degree() < 8) {
         std::vector<MCGAL::Point> vh_oneRing;
         std::vector<MCGAL::Halfedge*> heh_oneRing;
@@ -365,117 +617,4 @@ MCGAL::Halfedge* VertexRemovalGreedyEncoder::find_prev(MCGAL::Halfedge* h) {
         g = g->next();
     }
     return g;
-}
-
-void VertexRemovalGreedyEncoder::encodeBoundaryOp(int groupId) {
-    // vertex removal
-    std::unordered_map<int, std::vector<Node>>& nodes = graph->getNode(groupId);
-    for (auto& [neighbourId, nodeArr] : nodes) {
-        for (auto& node : nodeArr) {
-            if (node.isVisiable()) {
-                continue;
-            }
-            node.setVisiable();
-            int poolId = node.st;
-            MCGAL::Vertex* vt = MCGAL::contextPool.getVertexByIndex(meshId, poolId);
-            MCGAL::Halfedge* boundary = nullptr;
-            for (MCGAL::Halfedge* hit : vt->halfedges()) {
-                if (hit->isBoundary()) {
-                    if (hit->end_vertex()->poolId() == node.ed) {
-                        boundary = hit;
-                        break;
-                    }
-                }
-            }
-            std::unordered_map<int, std::vector<Node>>& neighbour_nodes = graph->getNode(neighbourId);
-            for (auto& [key, nds] : neighbour_nodes) {
-                if (key == groupId) {
-                    for (auto& nd : nds) {
-                        if (nd.st == node.stop) {
-                            nd.setVisiable();
-                            break;
-                        }
-                    }
-                }
-            }
-            int stopId = node.stop;
-            // NEW_boundary 可能有问题
-            int cnt = 0;
-            do {
-                if (boundaryRemovableInVertexRemoval(groupId, neighbourId, boundary)) {
-                    if (boundary->next()->isBoundary()) {
-                        int oriRemovedVid = 0;
-                        MCGAL::Vertex* v1 = nullptr;
-                        MCGAL::Vertex* v2 = nullptr;
-                        MCGAL::Halfedge* new_boundary = nullptr;
-                        if (boundary->face()->facet_degree() == 3) {
-                            // 将这个面的groupId设置为opposite的groupId
-                            boundary->face()->setGroupId(boundary->opposite()->face()->groupId());
-                            // 取消旧边界
-                            boundary->setNotBoundary();
-                            boundary->opposite()->setNotBoundary();
-                            boundary->next()->setNotBoundary();
-                            boundary->next()->opposite()->setNotBoundary();
-                            // 设置新边界
-                            new_boundary = boundary->next()->next()->opposite();
-                            new_boundary->setRemovedVertex(boundary->end_vertex()->pointptr());
-                            new_boundary->setBoundary();
-                            new_boundary->opposite()->setBoundary();
-                        } else if (boundary->face()->facet_degree() > 3) {
-                            // } else if (false) {
-                            // 新建一个面
-                            new_boundary = MCGAL::contextPool.allocateHalfedgeFromPool(meshId, boundary->vertex(), boundary->next()->end_vertex());
-                            MCGAL::Halfedge* new_boundary_opposite = MCGAL::contextPool.allocateHalfedgeFromPool(meshId, boundary->next()->end_vertex(), boundary->vertex());
-                            // 取消旧边界
-                            boundary->setNotBoundary();
-                            boundary->opposite()->setNotBoundary();
-                            boundary->next()->setNotBoundary();
-                            boundary->next()->opposite()->setNotBoundary();
-                            MCGAL::Halfedge* boundary_prev = find_prev(boundary);
-                            boundary_prev->setNext(new_boundary);
-                            new_boundary->setNext(boundary->next()->next());
-                            new_boundary_opposite->setNext(boundary);
-                            boundary->next()->setNext(new_boundary_opposite);
-                            // 申请新面
-                            MCGAL::Facet* new_face = MCGAL::contextPool.allocateFaceFromPool(meshId, new_boundary_opposite);
-                            new_face->setGroupId(boundary->opposite()->face()->groupId());
-                            // 从大的多边形中移除小的多边形
-                            new_boundary->setRemovedVertex(boundary->end_vertex()->pointptr());
-                            new_boundary->setBoundary();
-                            new_boundary->opposite()->setBoundary();
-                            // 减除一个三角形
-                            boundary_prev->face()->reset(boundary_prev);
-                        }
-                        // 获得对面的groupId
-                        MCGAL::Halfedge* h = boundary->opposite();
-                        MCGAL::Halfedge* end(h);
-                        int removed = 0;
-                        do {
-                            MCGAL::Facet* f = h->face();
-                            assert(!f->isConquered() && !f->isRemoved());
-                            if (f->facet_degree() > 3) {
-                                MCGAL::Halfedge* hSplit(h->next());
-                                for (; hSplit->next()->next() != h; hSplit = hSplit->next())
-                                    ;
-                                MCGAL::Halfedge* hCorner = mesh->split_facet_non_meshId(h, hSplit);
-                                // hCorner->setBoundaryAdded();
-                            }
-                            h->end_vertex()->setConquered();
-                            removed++;
-                        } while ((h = h->opposite()->next()) != end);
-                        MCGAL::Halfedge* newH = mesh->erase_center_vertex(boundary);
-                        newH->face()->setGroupId(neighbourId);
-                        boundary = new_boundary;
-                    }
-                }
-                if (boundary->end_vertex()->poolId() == stopId) {
-                    break;
-                }
-                boundary = next_boundary(neighbourId, boundary);
-                // if (boundary == nullptr)
-                //     break;
-                cnt++;
-            } while (boundary->end_vertex()->poolId() != stopId);
-        }
-    }
 }

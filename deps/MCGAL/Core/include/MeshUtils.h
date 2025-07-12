@@ -122,6 +122,14 @@ static MCGAL::Halfedge* next_boundary(int ogroupId, MCGAL::Halfedge* boundary) {
     return nullptr;
 }
 
+Halfedge* find_prev(Halfedge* h) const {
+    Halfedge* g = h;
+    while (g->next() != h) {
+        g = g->next();
+    }
+    return g;
+}
+
 }  // namespace MCGAL
 
 #endif

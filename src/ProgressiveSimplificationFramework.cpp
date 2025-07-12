@@ -26,7 +26,6 @@ void ProgressiveSimplificationFramework::encode(Options options) {
                     vertex_removal_greedy_encode();
                 } else if (level_types[i].first == CompressType::FAST_QUADRIC) {
                 }
-
                 break;
             }
             case LocalOperatorType::EDGE_COLLAPSE: {
@@ -42,6 +41,7 @@ void ProgressiveSimplificationFramework::encode(Options options) {
             }
             default: break;
         }
+        
         resetState();
     }
     mesh.dumpto_oldtype("./encode.off");

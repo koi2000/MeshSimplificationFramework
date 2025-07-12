@@ -213,6 +213,14 @@ class Facet {
 
     int facet_degree();
 
+    inline bool isVisited(int current_version) const {
+        return visited_version == current_version;
+    }
+
+    inline void setVisited(int current_version) {
+        visited_version = current_version;
+    }
+
   private:
     SplittableFlag splittableFlag_ = Unknown;
     ProcessedFlag processedFlag_ = NotProcessed;
@@ -226,6 +234,7 @@ class Facet {
     std::vector<Vertex*> vertices_;
     std::vector<Halfedge*> halfedges_;
     int facet_degree_ = 0;
+    int visited_version = 0;
 };
 
 }  // namespace MCGAL

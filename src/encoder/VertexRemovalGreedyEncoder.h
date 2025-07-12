@@ -46,11 +46,9 @@ class VertexRemovalGreedyEncoder {
 
     MCGAL::Vertex* opposite_vertex(MCGAL::Vertex* vit, int outer);
 
-    void encodeFacetSymbolOp(int groupId);
+    void encodeSymbolOp();
 
-    void encodeHalfedgeSymbolOp(int groupId);
-
-    void encodeBoundarySymbolOp(int groupId);
+    void encodeBoundarySymbolOp();
 
     bool isBoundaryRemovable(MCGAL::Halfedge* h);
 
@@ -70,6 +68,7 @@ class VertexRemovalGreedyEncoder {
     int meshId = -1;
     MCGAL::Mesh* mesh = nullptr;
     std::set<MCGAL::Vertex*>* triPoints;
+    int groupId;
 
     Graph* graph = nullptr;
     char* buffer;
