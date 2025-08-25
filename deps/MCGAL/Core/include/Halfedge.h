@@ -7,6 +7,12 @@ namespace MCGAL {
 class Point;
 class Vertex;
 class Facet;
+
+struct VertexRemovalEncodeSchema {
+    int number;
+    Point p;
+};
+
 class Halfedge {
   public:
     Halfedge() {};
@@ -199,6 +205,7 @@ class Halfedge {
     int poolId_ = -1;
     int meshId_ = -1;
     int groupId_ = -1;
+    VertexRemovalEncodeSchema vSchema_;
 };
 }  // namespace MCGAL
 

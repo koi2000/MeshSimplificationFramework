@@ -1,6 +1,7 @@
 #include "VertexRemovalGreedyEncoder.h"
 #include "../common/BufferUtils.h"
 #include "../common/Logutil.h"
+
 #include "BFSVersionManager.h"
 #include "MeshUtils.h"
 #include "biops.h"
@@ -202,10 +203,23 @@ void VertexRemovalGreedyEncoder::encodeBoundaryOp(int groupId) {
             }
             int stopId = node.stop;
             do {
+                if (boundary->end_vertex()->poolId() == stopId) {
+                    break;
+                }
                 if (boundaryRemovableInVertexRemoval(groupId, neighbourId, boundary)) {
                     MCGAL::Halfedge* next_boundary = MCGAL::next_boundary(neighbourId, boundary);
+
+                    boundary->setNotBoundary();
+                    next_boundary->setNotBoundary();
+
                     // try use split facet to triangulation and use vertex removal to compress
                     MCGAL::Vertex* v = boundary->end_vertex();
+                    // 借入方存在内部
+                    // next_boundary->next()->setBoundarySave();
+
+                    // 借出方存在边界
+                    // MCGAL::find_prev(boundary)->opposite()->setBoundarySave();
+                    
                     assert(v->vertex_degree() > 2);
                     MCGAL::Halfedge* h = boundary->opposite();
                     MCGAL::Halfedge* end(h);
@@ -239,6 +253,11 @@ void VertexRemovalGreedyEncoder::encodeBoundaryOp(int groupId) {
                     added_face->setGroupId(groupId);
                     // added_face->setSplittable();
                     // added_face->setRemovedVertexPos(vPos);
+                    for (auto it = added_face->halfedges_begin(); it != added_face->halfedges_end(); it++) {
+                        if ((*it)->face()->groupId() != (*it)->opposite()->face()->groupId()) {
+                            (*it)->setBoundary();
+                        }
+                    }
                 }
                 if (boundary->end_vertex()->poolId() == stopId) {
                     break;
