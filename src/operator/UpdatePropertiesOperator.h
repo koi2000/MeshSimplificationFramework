@@ -1,21 +1,17 @@
 #ifndef UPDATEPROPERTITY_H
 #define UPDATEPROPERTITY_H
 
-#include "core.h"
-#include "symetric_matrix.h"
+#include <memory>
+#include <vector>
+#include "Halfedge.h"
+#include "../handler/PropertyHandleWrapper.h"
 
 class UpdatePropertiesOperator {
   public:
-    UpdatePropertiesOperator();
-    ~UpdatePropertiesOperator();
+    UpdatePropertiesOperator() = default;
+    ~UpdatePropertiesOperator() = default;
 
-    void updatePropertity(int meshId, MCGAL::Halfedge* halfedge);
-
-  private:
-    OpenMesh::VPropHandleT<SymetricMatrix> m_vpQuadrics;
-    OpenMesh::HPropHandleT<double> m_epError;
-    OpenMesh::HPropHandleT<MCGAL::Point> m_epTargetPoints;
-    OpenMesh::HPropHandleT<bool> m_epDirty;
+    virtual void updatePropertity(int meshId, MCGAL::Halfedge* halfedge, const std::vector<std::unique_ptr<PropertyHandleWrapper>>& handles) = 0;
 };
 
 #endif

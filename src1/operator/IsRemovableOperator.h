@@ -1,11 +1,11 @@
 #ifndef ISREOVABLEOPERATOR_H
 #define ISREOVABLEOPERATOR_H
 
-#include "Halfedge.h"
+#include "core.h"
 
 class IsRemovableOperator {
   public:
-    IsRemovableOperator() = default;
+    IsRemovableOperator() {};
 
     virtual bool isRemovable(MCGAL::Halfedge* halfedge) = 0;
 };
