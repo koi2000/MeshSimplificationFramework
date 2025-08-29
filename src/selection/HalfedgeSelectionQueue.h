@@ -50,7 +50,8 @@ class HalfedgeSelectionQueue {
                            std::function<float(MCGAL::Halfedge*)> halfedgeErrorAccessor = nullptr,
                            std::function<float(MCGAL::Vertex*)> vertexErrorAccessor = nullptr,
                            std::vector<std::shared_ptr<IsRemovableOperator>> operators = {})
-        : source_(source), halfedgeErrorAccessor_(std::move(halfedgeErrorAccessor)), vertexErrorAccessor_(std::move(vertexErrorAccessor)), operators_(operators) {
+        : source_(source), halfedgeErrorAccessor_(std::move(halfedgeErrorAccessor)), vertexErrorAccessor_(std::move(vertexErrorAccessor)),
+          operators_(operators) {
         if (!isValidEdgePredicate_) {
             isValidEdgePredicate_ = [](MCGAL::Halfedge* e) { return e != nullptr && !e->isRemoved(); };
         }
@@ -75,12 +76,25 @@ class HalfedgeSelectionQueue {
         currentVersions_.reserve(n);
     }
 
+    bool isRemovable(MCGAL::Halfedge* e) {
+        for (auto& op : operators_) {
+            if (!op->isRemovable(e)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool isValid(MCGAL::Halfedge* e) {
+        return isValidEdgePredicate_(e) && isRemovable(e);
+    }
+
     // Build queue from all halfedges incident to vertices of the mesh.
     // This avoids coupling with any specific mesh traversal elsewhere in the project.
-    void buildFromMesh(MCGAL::Mesh& mesh) {
+    void buildFromMesh(std::shared_ptr<MCGAL::Mesh>& mesh) {
         clear();
         if (source_ == ErrorSource::Halfedge) {
-            auto& vertices = mesh.vertices();
+            auto& vertices = mesh->vertices();
             for (MCGAL::Vertex* v : vertices) {
                 if (v == nullptr)
                     continue;
@@ -89,7 +103,7 @@ class HalfedgeSelectionQueue {
                     if (h == nullptr)
                         continue;
                     // Only index each undirected edge once (by convention: original flag or lower poolId)
-                    if (!isValidEdgePredicate_(h))
+                    if (!isValid(h))
                         continue;
                     if (h->opposite() && h->poolId() > h->opposite()->poolId())
                         continue;
@@ -103,7 +117,7 @@ class HalfedgeSelectionQueue {
     void pushOrUpdate(MCGAL::Halfedge* edge) {
         if (edge == nullptr)
             return;
-        if (!isValidEdgePredicate_(edge))
+        if (!isValid(edge))
             return;
         float err = computeError(edge);
         std::uint64_t version = ++globalVersionCounter_;
@@ -131,7 +145,7 @@ class HalfedgeSelectionQueue {
             if (it->second != top.version) {
                 continue;  // superseded by a newer update
             }
-            if (!isValidEdgePredicate_(top.edge)) {
+            if (!isValid(top.edge)) {
                 currentVersions_.erase(it);
                 continue;
             }

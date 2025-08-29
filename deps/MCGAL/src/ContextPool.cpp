@@ -1,3 +1,8 @@
+/*
+ * @Author: koi
+ * @Date: 2025-03-23 18:00:20
+ * @Description: 
+ */
 #include "ContextPool.h"
 #include "string.h"
 namespace MCGAL {
@@ -11,9 +16,9 @@ void ContextPool::initPoolSize(int size) {
 }
 
 int ContextPool::registerPool(int estimateVSize, int estimateHSize, int estimateFSize) {
-    estimateVSize *= 3;
-    estimateHSize *= 3;
-    estimateFSize *= 3;
+    estimateVSize *= 10;
+    estimateHSize *= 10;
+    estimateFSize *= 10;
 
     vpoolSizes.push_back(estimateVSize);
     hpoolSizes.push_back(estimateHSize);

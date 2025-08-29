@@ -148,6 +148,10 @@ class Facet {
         removedFlag_ = Removed;
     }
 
+    inline void setNotRemoved() {
+        removedFlag_ = NotRemoved;
+    }
+
     inline bool isRemoved() {
         return removedFlag_ == Removed;
     }
@@ -184,6 +188,8 @@ class Facet {
     }
 
     std::vector<Vertex*> getVertices();
+
+    std::vector<Halfedge*> getHalfedges();
 
     inline bool isConquered() const {
         return (splittableFlag_ == Splittable || splittableFlag_ == Unsplittable || removedFlag_ == Removed);

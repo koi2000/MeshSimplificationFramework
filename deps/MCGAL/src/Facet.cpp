@@ -178,6 +178,17 @@ std::vector<Vertex*> Facet::getVertices() {
     return vs;
 }
 
+std::vector<Halfedge*> Facet::getHalfedges() {
+    std::vector<Halfedge*> hs;
+    Halfedge* st = proxyHalfedge_;
+    Halfedge* ed = proxyHalfedge_;
+    do {
+        hs.push_back(st);
+        st = st->next();
+    } while (st != ed);
+    return hs;
+}
+
 void Facet::print() {
     printf("totally %ld vertices_:\n", vertices_.size());
     int idx = 0;

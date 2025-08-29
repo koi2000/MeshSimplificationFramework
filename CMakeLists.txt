@@ -35,6 +35,16 @@ include_directories(
 
 add_subdirectory(deps/MCGAL)
 
+file(GLOB_RECURSE COMMON
+    "src/common/*.h"
+    "src/common/*.cpp"
+)
+
+file(GLOB_RECURSE ELIMINATION
+    "src/elimination/*.h"
+    "src/elimination/*.cpp"
+)
+
 file(GLOB_RECURSE HANDLER
     "src/handler/*.h"
     "src/handler/*.cpp"
@@ -45,14 +55,30 @@ file(GLOB_RECURSE OPERATOR
     "src/operator/*.cpp"
 )
 
+file(GLOB_RECURSE OPTIONS
+    "src/options/*.h"
+    "src/options/*.cpp"
+)
+
+file(GLOB_RECURSE SEGMENTATION
+    "src/segmentation/*.h"
+    "src/segmentation/*.cpp"
+)
+
+file(GLOB_RECURSE SELECTION
+    "src/selection/*.h"
+    "src/selection/*.cpp"
+)
+
 
 file(GLOB_RECURSE FRAMEWORK
     "src/PMSF.h"
+    "src/OPTIONS.h"
     "src/PMSF.cpp"
 )
 
-add_executable(PMSFTest tools/PMSF_Test.cpp ${FRAMEWORK} ${HANDLER} ${OPERATOR})
-target_include_directories(PMSFTest PUBLIC "src")
+add_executable(PMSFTest tools/PMSF_Test.cpp ${FRAMEWORK} ${COMMON} ${ELIMINATION} ${HANDLER} ${OPERATOR} ${OPTIONS} ${SEGMENTATION} ${SELECTION})
+target_include_directories(PMSFTest PUBLIC "src" )
 target_link_libraries(PMSFTest MCGAL_static)
 
 

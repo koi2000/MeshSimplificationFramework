@@ -190,6 +190,9 @@ class ContextPool {
 
     inline MCGAL::Facet* allocateFaceFromPool(int index, MCGAL::Halfedge* halfedge) {
         MCGAL::Facet* f = &fpools[index][findexs[index]++];
+        if(findexs[index] == 90551) {
+            int i = 0;
+        }
         f->setMeshId(index);
         f->reset_without_init(halfedge);
         return f;

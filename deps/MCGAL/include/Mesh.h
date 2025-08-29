@@ -17,6 +17,9 @@ class Point;
 #define MESH_BUCKET_SIZE 4096
 class Mesh {
   public:
+    Mesh(std::string path) {
+        this->loadOFF(path);
+    }
     Mesh() {
         faces_.reserve(MESH_BUCKET_SIZE);
         vertices_.reserve(MESH_BUCKET_SIZE);

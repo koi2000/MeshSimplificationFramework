@@ -9,21 +9,22 @@
 #include "core.h"
 #include "handler/ProcessorRegistry.h"
 #include <cstddef>
+#include "options/CompressOptions.h"
 
 class PMSF {
   public:
     PMSF() = default;
     ~PMSF() = default;
 
-    void compress();
+    void compress(CompressOptions& options);
 
     void decompress();
 
     void RegisterProperties();
 
   private:
-    MCGAL::Mesh mesh;
-    char* buffer = nullptr;
+    MCGAL::Mesh mesh_;
+    char* buffer_ = nullptr;
 };
 
 #endif

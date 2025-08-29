@@ -12,7 +12,7 @@
 
 #include "Halfedge.h"
 #include "Mesh.h"
-#include "selection/SelectOptions.h"
+#include "options/SelectOptions.h"
 #include <memory>
 
 /**
@@ -23,7 +23,10 @@
 
 class SelectOperator {
   public:
-    SelectOperator(std::shared_ptr<MCGAL::Mesh> mesh, SelectOptions options);
+    SelectOperator(SelectOptions options) : options_(options){};
+
+    virtual void init(std::shared_ptr<MCGAL::Mesh> mesh) = 0;
+
     virtual ~SelectOperator() = default;
     /**
      * @brief 选择一条边
@@ -32,9 +35,10 @@ class SelectOperator {
      * @return true 这一轮仍有可以选择的会返回true，否则会返回false
      * @return false
      */
-    virtual bool select(MCGAL::Halfedge* halfedge) = 0;
+    virtual bool select(MCGAL::Halfedge*& halfedge) = 0;
 
-  private:
+    virtual void reset() = 0;
+
     std::shared_ptr<MCGAL::Mesh> mesh_;
     SelectOptions options_;
 };

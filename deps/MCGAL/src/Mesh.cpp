@@ -13,7 +13,7 @@
 #include <sstream>
 namespace MCGAL {
 
-#define COLOR
+// #define COLOR
 
 constexpr std::array<std::array<int, 3>, 68> colors = {{
     // {0, 0, 0},        // Black
@@ -130,6 +130,12 @@ void Mesh::eraseVertexByPointer(Vertex* vertex) {
 void Mesh::resetState() {
     for (int i = 0; i < vertices_.size(); i++) {
         vertices_[i]->resetState();
+    }
+    for (int i = 0; i < faces_.size(); i++) {
+        faces_[i]->resetState();
+        for (auto it = faces_[i]->halfedges_begin(); it != faces_[i]->halfedges_end(); it++) {
+            (*it)->resetState();
+        }
     }
 }
 
@@ -311,7 +317,7 @@ MCGAL::Vertex* Mesh::halfedge_collapse(MCGAL::Halfedge* h, MCGAL::Point newp) {
     v1->setCollapsed();
     vsn->bitmap = bitmap;
     v1->setVertexSplitNode(vsn);
-    if(v2->isBoundary()) {
+    if (v2->isBoundary()) {
         v1->setBoundary();
     }
     return v1;
@@ -1032,7 +1038,7 @@ bool Mesh::loadOFF(std::string path) {
 
     file >> format >> nb_vertices >> nb_faces >> nb_edges;
 
-    meshId_ = MCGAL::contextPool.registerPool(nb_vertices, nb_faces * 3, nb_faces);
+    meshId_ = MCGAL::contextPool.registerPool(nb_vertices, nb_faces * 5, nb_faces);
 
     if (format != "OFF") {
         std::cerr << "Error: Invalid OFF file format" << std::endl;

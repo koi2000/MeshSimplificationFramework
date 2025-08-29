@@ -109,6 +109,7 @@ class Vertex : public Point {
     virtual void resetState() {
         this->processedFlag_ = NotProcessed;
         this->conquredFlag_ = Unconquered;
+        this->collapsedFlag_ = NotCollapsed;
     }
 
     inline bool isConquered() const {
