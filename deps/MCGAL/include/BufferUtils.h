@@ -1,3 +1,8 @@
+/*
+ * @Author: koi
+ * @Date: 2025-09-02 12:07:45
+ * @Description: 
+ */
 #ifndef BUFFER_UTILS_H
 #define BUFFER_UTILS_H
 #include "core.h"

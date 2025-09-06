@@ -38,6 +38,7 @@ int main() {
                                    .setRound(10)
                                    .setEliminate(eliminateOp)
                                    .setPath("/home/koi/mastercode/MeshSimplificationFramework/static/untitled.off")
+                                   .setOutputPath("./compress.bin")
                                    .build();
     pmsf.compress(coptions);
     return 0;

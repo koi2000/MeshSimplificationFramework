@@ -6,6 +6,7 @@
 #ifndef PMSF_H
 #define PMSF_H
 
+#include "Options.h"
 #include "core.h"
 #include "handler/ProcessorRegistry.h"
 #include <cstddef>
@@ -18,7 +19,7 @@ class PMSF {
 
     void compress(CompressOptions& options);
 
-    void decompress();
+    void decompress(DecompressOptions& options);
 
     void RegisterProperties();
 

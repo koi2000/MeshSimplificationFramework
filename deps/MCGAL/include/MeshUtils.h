@@ -1,8 +1,12 @@
 #ifndef MESH_UTILS_H
 #define MESH_UTILS_H
 
+#include "BufferUtils.h"
+#include "Mesh.h"
+#include "Vertex.h"
 #include "core.h"
 #include "symetric_matrix.h"
+#include <memory>
 
 namespace MCGAL {
 
@@ -135,6 +139,101 @@ static MCGAL::Vector3 crossProduct(const MCGAL::Point& A, const MCGAL::Point& B,
     MCGAL::Vector3 AB = B - A;
     MCGAL::Vector3 AP = P - A;
     return AB.cross(AP);
+}
+
+static bool compareVertex(MCGAL::Vertex* a, MCGAL::Vertex* b) {
+    if (a->x() != b->x()) {
+        return a->x() < b->x();
+    }
+    if (a->y() != b->y()) {
+        return a->y() < b->y();
+    }
+    return a->z() < b->z();
+}
+
+static std::shared_ptr<MCGAL::Mesh> buildFromBuffer(int meshId, std::deque<MCGAL::Point>* p_pointDeque, std::deque<uint32_t*>* p_faceDeque) {
+    std::shared_ptr<MCGAL::Mesh> mesh = std::make_shared<MCGAL::Mesh>();
+    mesh->setMeshId(meshId);
+    std::vector<MCGAL::Vertex*> vertices;
+    for (std::size_t i = 0; i < p_pointDeque->size(); ++i) {
+        float x, y, z;
+        MCGAL::Point p = p_pointDeque->at(i);
+        MCGAL::Vertex* vt = MCGAL::contextPool.allocateVertexFromPool(meshId, p);
+        mesh->add_vertex(vt);
+        vertices.push_back(vt);
+    }
+    for (int i = 0; i < p_faceDeque->size(); ++i) {
+        uint32_t* ptr = p_faceDeque->at(i);
+        int num_face_vertices = ptr[0];
+        std::vector<MCGAL::Vertex*> vts;
+        for (int j = 0; j < num_face_vertices; ++j) {
+            int vertex_index = ptr[j + 1];
+            vts.push_back(vertices[vertex_index]);
+        }
+        MCGAL::Facet* face = MCGAL::contextPool.allocateFaceFromPool(meshId, vts);
+        mesh->add_face(face);
+    }
+    vertices.clear();
+    return mesh;
+}
+
+static std::shared_ptr<MCGAL::Mesh> readBaseMesh(int meshId, char* buffer, int& dataOffset) {
+    unsigned i_nbVerticesBaseMesh = readInt(buffer, dataOffset);
+    unsigned i_nbFacesBaseMesh = readInt(buffer, dataOffset);
+    MCGAL::contextPool.registerPool(i_nbVerticesBaseMesh, i_nbFacesBaseMesh * 5, i_nbFacesBaseMesh);
+    std::deque<MCGAL::Point>* p_pointDeque = new std::deque<MCGAL::Point>();
+    std::deque<uint32_t*>* p_faceDeque = new std::deque<uint32_t*>();
+    for (unsigned i = 0; i < i_nbVerticesBaseMesh; ++i) {
+        MCGAL::Point pos = readPoint(buffer, dataOffset);
+        p_pointDeque->push_back(pos);
+    }
+    for (unsigned i = 0; i < i_nbFacesBaseMesh; ++i) {
+        int nv = readInt(buffer, dataOffset);
+        uint32_t* f = new uint32_t[nv + 1];
+        f[0] = nv;
+        for (unsigned j = 1; j < nv + 1; ++j) {
+            f[j] = readInt(buffer, dataOffset);
+        }
+        p_faceDeque->push_back(f);
+    }
+    auto mesh = buildFromBuffer(meshId, p_pointDeque, p_faceDeque);
+
+    for (unsigned i = 0; i < p_faceDeque->size(); ++i) {
+        delete[] p_faceDeque->at(i);
+    }
+    delete p_faceDeque;
+    delete p_pointDeque;
+    return mesh;
+}
+
+static inline void remove_tip(Halfedge* h) {
+    h->setNext(h->next()->opposite()->next());
+}
+
+/**
+ * 还是顺序的问题 明天定位一下顺序的问题处在哪里
+ */
+static Halfedge* join_face(Halfedge* h) {
+    if(h->poolId() == 73932) {
+        int i = 0;
+    }
+    Halfedge* hprev = find_prev(h);
+    Halfedge* gprev = find_prev(h->opposite());
+    remove_tip(hprev);
+    remove_tip(gprev);
+    h->opposite()->setRemoved();
+    h->setRemoved();
+    if(gprev->face()->poolId() == 24644 || hprev->face()->poolId() == 24644) {
+        int i = 0;
+    }
+    if (gprev->face()->isSplittable()) {
+        hprev->face()->setRemoved();
+        gprev->face()->reset_without_init(gprev);
+    } else {
+        gprev->face()->setRemoved();
+        hprev->face()->reset_without_init(hprev);
+    }
+    return hprev;
 }
 
 }  // namespace MCGAL

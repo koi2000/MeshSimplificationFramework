@@ -25,6 +25,24 @@
 bool UnifiedManifoldIsRemovableOperator::isRemovable(MCGAL::Halfedge* h) {
     std::vector<MCGAL::Vertex*> vs;
     MCGAL::Vertex* v = h->end_vertex();
+    for (MCGAL::Halfedge* hit : h->vertex()->halfedges()) {
+        if (hit->isAdded()) {
+            return false;
+        }
+    }
+    for (MCGAL::Halfedge* hit : h->end_vertex()->halfedges()) {
+        if (hit->isAdded()) {
+            return false;
+        }
+    }
+    MCGAL::Halfedge* st = h->opposite()->next();
+    MCGAL::Halfedge* ed = h->opposite()->next();
+    do {
+        if (st->isAdded()) {
+            return false;
+        }
+        st = st->next()->opposite()->next();
+    } while (st != ed);
     if (!(v->vertex_degree() > 2 && v->vertex_degree() < 8)) {
         return false;
     }

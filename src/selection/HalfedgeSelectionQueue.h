@@ -76,6 +76,10 @@ class HalfedgeSelectionQueue {
         currentVersions_.reserve(n);
     }
 
+    void addIsRemovableOperator(std::shared_ptr<IsRemovableOperator> op) {
+        operators_.push_back(op);
+    }
+
     bool isRemovable(MCGAL::Halfedge* e) {
         for (auto& op : operators_) {
             if (!op->isRemovable(e)) {

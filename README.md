@@ -1,16 +1,27 @@
+<!--
+ * @Author: koi
+ * @Date: 2025-03-19 16:25:19
+ * @Description: 
+-->
 # MeshSimplificationFramework
 
-首先Greedy系列直接压缩即可，无需在意其他
+需要完成的内容
 
-在fast系列中，第一个需要引入error计算方法，然后就是第二个问题，如何遍历？
+## selection
 
-可以使用图的遍历方法，一轮接一轮的遍历
+可以统一化为一个优先级队列，当不需要带error的时候就退化为队列
 
-为每个点都设置一个processed flag，这样防止每个点被处理多次
- 
-多次遍历，每次遍历时的quardic阈值都会出现变化，直到不能遍历为止
+## elimination
+
+现在抽象为一个operator了，其实很简单，可以分为 erase_center_vertex 和 triagulation。然后可能会再调整点的位置。
+
+在存储时也可以进行统一化，根据边变为bitmap去存储 然后根据面变为bitmap再存储。
+
+## segmentation
+
+在其中有另一个需要注意的问题，就是边界的处理问题
 
 
-一直坚持unified model和unified storage原则，unified storage，bit记录需处理的 + 
+## compress
 
-本质是移除点 + 如何三角化的问题
+## decompress

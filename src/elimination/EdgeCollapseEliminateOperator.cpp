@@ -1,7 +1,7 @@
 /*
  * @Author: koi
  * @Date: 2025-08-27 22:37:20
- * @Description: 
+ * @Description:
  */
 #include "EdgeCollapseEliminateOperator.h"
 #include "Facet.h"
@@ -10,20 +10,24 @@
 
 using namespace MCGAL;
 
-void EdgeCollapseEliminateOperator::eliminate(MCGAL::Halfedge* h) {
-    if (h == nullptr) return;
+bool EdgeCollapseEliminateOperator::eliminate(MCGAL::Halfedge* h) {
+    if (h == nullptr)
+        return true;
     remove_point(h);
     triangulate(h);
     postprocess(h);
     encode_boundary(h);
+    return true;
 }
 
-void EdgeCollapseEliminateOperator::remove_point(MCGAL::Halfedge* h) {
+bool EdgeCollapseEliminateOperator::remove_point(MCGAL::Halfedge* h) {
     // 边折叠：将 h 的 end_vertex 合并到 h 的 vertex，使用 Mesh::halfedge_collapse
-    if (h == nullptr) return;
+    if (h == nullptr)
+        return true;
     Vertex* v1 = h->vertex();
     Vertex* v2 = h->end_vertex();
-    if (v1 == nullptr || v2 == nullptr) return;
+    if (v1 == nullptr || v2 == nullptr)
+        return true;
 
     // 使用均值位置坍缩，Mesh::halfedge_collapse 内部会处理相邻拓扑
     Point newp{(v1->x() + v2->x()) / 2.0f, (v1->y() + v2->y()) / 2.0f, (v1->z() + v2->z()) / 2.0f};
@@ -31,12 +35,13 @@ void EdgeCollapseEliminateOperator::remove_point(MCGAL::Halfedge* h) {
     // 简化：直接调用已有重载 Mesh::halfedge_collapse(h, newp) 的非静态实现通常需要 Mesh 实例。
     // 在当前框架中该函数是成员函数，但常通过外部流程持有 Mesh 指针调用。
     // 为了完成接口，这里仅做点位设置与标记，真正的拓扑调整由已有流程负责。
-    
+
     v1->setPoint(newp);
     v2->setRemoved();
+    return true;
 }
 
-void EdgeCollapseEliminateOperator::triangulate(MCGAL::Halfedge* h) {
+bool EdgeCollapseEliminateOperator::triangulate(MCGAL::Halfedge* h) {
     // 简化：重置两侧面，如果是多边形则保持结构一致
     Halfedge* ho = h->opposite();
     if (h->face() && !h->face()->isRemoved()) {
@@ -49,14 +54,13 @@ void EdgeCollapseEliminateOperator::triangulate(MCGAL::Halfedge* h) {
             ho->face()->reset(ho);
         }
     }
+    return true;
 }
 
-void EdgeCollapseEliminateOperator::postprocess(MCGAL::Halfedge* h) {
-    (void)h;
+bool EdgeCollapseEliminateOperator::postprocess(MCGAL::Halfedge* h) {
+    return true;
 }
 
-void EdgeCollapseEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
-    (void)h;
+bool EdgeCollapseEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
+    return true;
 }
-
-

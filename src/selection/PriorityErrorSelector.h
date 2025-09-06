@@ -9,6 +9,7 @@
 #include "Mesh.h"
 #include "SelectOperator.h"
 #include "selection/HalfedgeSelectionQueue.h"
+#include "operator/IsRemovableOperator.h"
 #include <memory>
 
 class PriorityErrorSelector : public SelectOperator {
@@ -18,6 +19,7 @@ class PriorityErrorSelector : public SelectOperator {
     PriorityErrorSelector();
     ~PriorityErrorSelector();
     bool select(MCGAL::Halfedge*& halfedge) override;
+    void addIsRemovableOperator(std::shared_ptr<IsRemovableOperator> op) override;
     void reset() override;
 
   private:

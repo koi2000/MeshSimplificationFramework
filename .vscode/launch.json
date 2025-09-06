@@ -5,11 +5,11 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "PMSFTest",
+			"name": "DefaultCompress",
 			"type": "cppdbg",
 			// "type": "cuda-gdb",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/PMSFTest",
+			"program": "${workspaceFolder}/build/DefaultCompress",
 			"args": [
 				"/home/koi/mastercode/Mini_CGAL/static/untitled.off"
 			],
@@ -38,11 +38,11 @@
 			]
 		},
 		{
-			"name": "FrameWorkTest",
+			"name": "DefaultDecompress",
 			"type": "cppdbg",
 			// "type": "cuda-gdb",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/FrameworkTest",
+			"program": "${workspaceFolder}/build/DefaultDecompress",
 			"args": [
 				"/home/koi/mastercode/Mini_CGAL/static/untitled.off"
 			],

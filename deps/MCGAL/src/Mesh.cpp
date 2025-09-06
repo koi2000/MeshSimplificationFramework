@@ -911,6 +911,9 @@ Halfedge* Mesh::create_center_vertex(Halfedge* h) {
     return oppo_new;
 }
 
+/**
+    目前存在的问题，如果只是三个顶点，会存在问题
+ */
 Halfedge* Mesh::create_center_vertex(Halfedge* h, Point point) {
     // Vertex* vnew = new Vertex();
     Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(meshId_, point);
@@ -949,7 +952,7 @@ Halfedge* Mesh::create_center_vertex(Halfedge* h, Point point) {
 Halfedge* Mesh::create_center_vertex_without_init(Halfedge* h, Point point) {
     // Vertex* vnew = new Vertex();
     Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(meshId_, point);
-    // this->vertices_.push_back(vnew);
+    this->vertices_.push_back(vnew);
     Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, h->end_vertex(), vnew);
     Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, vnew, h->end_vertex());
     hnew->setOpposite(oppo_new);
@@ -974,7 +977,7 @@ Halfedge* Mesh::create_center_vertex_without_init(Halfedge* h, Point point) {
         insert_tip(gnew->opposite(), g);
         Facet* face = MCGAL::contextPool.allocateFaceFromPool(meshId_, g);
         // origin_around_halfedge.push_back(g);
-        // this->faces_.push_back(face);
+        this->faces_.push_back(face);
         g = gnew->opposite()->next();
         hnew = gnew;
     }
@@ -1236,11 +1239,12 @@ void Mesh::submesh_dumpto_oldtype(std::string path, int groupId) {
 }
 
 void Mesh::dumpto_oldtype(std::string path) {
-    auto newEnd = std::remove_if(faces_.begin(), faces_.end(), isFacetRemovable);
-    faces_.resize(std::distance(faces_.begin(), newEnd));
+    // auto newEnd = std::remove_if(faces_.begin(), faces_.end(), isFacetRemovable);
+    // faces_.resize(std::distance(faces_.begin(), newEnd));
 
-    auto newVEnd = std::remove_if(vertices_.begin(), vertices_.end(), isVertexRemovable);
-    vertices_.resize(std::distance(vertices_.begin(), newVEnd));
+    // auto newVEnd = std::remove_if(vertices_.begin(), vertices_.end(), isVertexRemovable);
+    // vertices_.resize(std::distance(vertices_.begin(), newVEnd));
+    garbage_collection();
 
     std::ofstream offFile(path);
     if (!offFile.is_open()) {

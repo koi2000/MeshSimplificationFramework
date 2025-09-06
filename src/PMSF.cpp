@@ -7,13 +7,19 @@
 #include "Global.h"
 #include "Halfedge.h"
 #include "Mesh.h"
+#include "compress/BasicSerializeOperator.h"
+#include "compress/BasicSymbolCollectOperator.h"
+#include "decompress/DeserializeOperator.h"
 #include "handler/PropertyHandleWrapper.h"
 #include "operator/CustomerUpdatePropertiesOperator.h"
 #include "operator/DefaultUpdatePropertiesOperator.h"
+#include "operator/SeedIsRemovableOperator.h"
 #include "selection/SelectOperator.h"
 #include <iostream>
 #include <memory>
 #include <string>
+
+#define DEBUG
 
 using epTargetPoints = OpenMesh::HPropHandleT<MCGAL::Point>;
 using vpQuadrics = OpenMesh::VPropHandleT<int>;
@@ -46,30 +52,72 @@ void PMSF::RegisterProperties() {
     customerUpdatePropertiesOperator.updatePropertity(0, nullptr, handles1);
     defaultUpdatePropertiesOperator.updatePropertity(0, nullptr, handles2);
 }
+
 void PMSF::compress(CompressOptions& options) {
     MCGAL::contextPool.initPoolSize(1);
 
     std::shared_ptr<MCGAL::Mesh> mesh = std::make_shared<MCGAL::Mesh>(MCGAL::Mesh(options.getPath()));
     std::shared_ptr<SelectOperator> select = options.getSelect();
     std::shared_ptr<EliminateOperator> eliminate = options.getEliminate();
+    std::shared_ptr<SymbolCollectOperator> collector = std::make_shared<BasicSymbolCollectOperator>();
+    std::shared_ptr<SerializeOperator> serializer = std::make_shared<BasicSerializeOperator>(collector);
+    std::shared_ptr<IsRemovableOperator> seedIsRemovableOperator = std::make_shared<SeedIsRemovableOperator>();
+
+    // set seed
+    MCGAL::Halfedge* seed = nullptr;
     select->init(mesh);
+
     eliminate->init(mesh);
+    collector->init(mesh);
+    select->select(seed);
+    seedIsRemovableOperator->init(nullptr, seed, nullptr);
+    select->addIsRemovableOperator(seedIsRemovableOperator);
     int count = 0;
+    #ifdef DEBUG
+        std::cout << count << std::endl;
+        count = 0;
+        std::string outpath = "./mesh_origin.off";
+        mesh->dumpto_oldtype(outpath);
+        mesh->resetState();
+#endif
     for (int i = 0; i < options.getRound(); i++) {
         MCGAL::Halfedge* candidate = nullptr;
-
         while (select->select(candidate)) {
-            if (count == 166 && i == 6) {
-                int i = 0;
+            if (eliminate->eliminate(candidate)) {
+                count++;
             }
-            eliminate->eliminate(candidate);
-            count++;
         }
+        collector->collect(seed);
         select->reset();
+#ifdef DEBUG
         std::cout << count << std::endl;
         count = 0;
         std::string outpath = "./mesh_" + std::to_string(i) + ".off";
         mesh->dumpto_oldtype(outpath);
         mesh->resetState();
+#endif
     }
+    serializer->initBuffer(BUFFER_SIZE);
+    serializer->serializeInt(options.getRound());
+    serializer->serializeBaseMeshWithSeed(mesh, seed);
+    serializer->serialize(options.getOutputPath());
+}
+
+void PMSF::decompress(DecompressOptions& options) {
+    std::shared_ptr<DeserializeOperator> deserializeOperator = options.getDeserializeOperator();
+    deserializeOperator->init(options.getPath());
+    int round;
+    deserializeOperator->deserializeInt(round);
+    deserializeOperator->deserializeBaseMesh();
+    while (round--) {
+        std::shared_ptr<MCGAL::Mesh> mesh = deserializeOperator->exportMesh();
+
+        std::string outpath = "./demesh_" + std::to_string(round) + ".off";
+        mesh->dumpto_oldtype(outpath);
+        mesh->resetState();
+
+        deserializeOperator->deserializeOneRound();
+    }
+    std::string outpath = "./demesh_fin.off";
+    deserializeOperator->exportMesh()->dumpto_oldtype(outpath);
 }

@@ -19,6 +19,10 @@ void PriorityErrorSelector::init(std::shared_ptr<MCGAL::Mesh> mesh) {
     queue.buildFromMesh(mesh);
 }
 
+void PriorityErrorSelector::addIsRemovableOperator(std::shared_ptr<IsRemovableOperator> op) {
+    queue.addIsRemovableOperator(op);
+}
+
 PriorityErrorSelector::~PriorityErrorSelector() {}
 
 void PriorityErrorSelector::reset() {

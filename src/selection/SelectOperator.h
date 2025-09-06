@@ -13,6 +13,7 @@
 #include "Halfedge.h"
 #include "Mesh.h"
 #include "options/SelectOptions.h"
+#include "operator/IsRemovableOperator.h"
 #include <memory>
 
 /**
@@ -36,6 +37,8 @@ class SelectOperator {
      * @return false
      */
     virtual bool select(MCGAL::Halfedge*& halfedge) = 0;
+
+    virtual void addIsRemovableOperator(std::shared_ptr<IsRemovableOperator> op) = 0;
 
     virtual void reset() = 0;
 

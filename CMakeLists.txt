@@ -33,53 +33,59 @@ include_directories(
     ${CUDA_INCLUDE_DIRS}
 )
 
+function(collect_source_files DIRECTORY_NAME)
+    file(GLOB_RECURSE ${DIRECTORY_NAME}_SOURCES
+        "src/${DIRECTORY_NAME}/*.h"
+        "src/${DIRECTORY_NAME}/*.cpp"
+    )
+    set(${DIRECTORY_NAME}_SOURCES ${${DIRECTORY_NAME}_SOURCES} PARENT_SCOPE)
+endfunction()
+
 add_subdirectory(deps/MCGAL)
 
-file(GLOB_RECURSE COMMON
-    "src/common/*.h"
-    "src/common/*.cpp"
-)
+# 自动收集所有子目录
+collect_source_files(common)
+collect_source_files(compress)
+collect_source_files(decompress)
+collect_source_files(elimination)
+collect_source_files(handler)
+collect_source_files(header)
+collect_source_files(operator)
+collect_source_files(options)
+collect_source_files(reconstruct)
+collect_source_files(segmentation)
+collect_source_files(selection)
 
-file(GLOB_RECURSE ELIMINATION
-    "src/elimination/*.h"
-    "src/elimination/*.cpp"
-)
-
-file(GLOB_RECURSE HANDLER
-    "src/handler/*.h"
-    "src/handler/*.cpp"
-)
-
-file(GLOB_RECURSE OPERATOR
-    "src/operator/*.h"
-    "src/operator/*.cpp"
-)
-
-file(GLOB_RECURSE OPTIONS
-    "src/options/*.h"
-    "src/options/*.cpp"
-)
-
-file(GLOB_RECURSE SEGMENTATION
-    "src/segmentation/*.h"
-    "src/segmentation/*.cpp"
-)
-
-file(GLOB_RECURSE SELECTION
-    "src/selection/*.h"
-    "src/selection/*.cpp"
-)
-
-
+# 收集框架核心文件
 file(GLOB_RECURSE FRAMEWORK
     "src/PMSF.h"
-    "src/OPTIONS.h"
+    "src/Options.h"
     "src/PMSF.cpp"
 )
 
-add_executable(PMSFTest tools/PMSF_Test.cpp ${FRAMEWORK} ${COMMON} ${ELIMINATION} ${HANDLER} ${OPERATOR} ${OPTIONS} ${SEGMENTATION} ${SELECTION})
-target_include_directories(PMSFTest PUBLIC "src" )
-target_link_libraries(PMSFTest MCGAL_static)
+# 合并所有源文件
+set(ALL_SOURCES
+    ${FRAMEWORK}
+    ${common_SOURCES}
+    ${compress_SOURCES}
+    ${decompress_SOURCES}
+    ${elimination_SOURCES}
+    ${handler_SOURCES}
+    ${header_SOURCES}
+    ${operator_SOURCES}
+    ${options_SOURCES}
+    ${reconstruct_SOURCES}
+    ${segmentation_SOURCES}
+    ${selection_SOURCES}
+)
+
+add_executable(DefaultCompress tools/DefaultCompress.cpp ${ALL_SOURCES})
+target_include_directories(DefaultCompress PUBLIC "src" )
+target_link_libraries(DefaultCompress MCGAL_static)
+
+add_executable(DefaultDecompress tools/DefaultDecompress.cpp ${ALL_SOURCES})
+target_include_directories(DefaultDecompress PUBLIC "src" )
+target_link_libraries(DefaultDecompress MCGAL_static)
 
 
 get_property(targetIncludes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)

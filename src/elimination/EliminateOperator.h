@@ -23,15 +23,15 @@ class EliminateOperator {
     
     virtual ~EliminateOperator() = default;
 
-    virtual void eliminate(MCGAL::Halfedge* h) = 0;
+    virtual bool eliminate(MCGAL::Halfedge* h) = 0;
 
-    virtual void remove_point(MCGAL::Halfedge* h) = 0;
+    virtual bool remove_point(MCGAL::Halfedge* h) = 0;
 
-    virtual void triangulate(MCGAL::Halfedge* h) = 0;
+    virtual bool triangulate(MCGAL::Halfedge* h) = 0;
 
-    virtual void postprocess(MCGAL::Halfedge* h) = 0;
+    virtual bool postprocess(MCGAL::Halfedge* h) = 0;
 
-    virtual void encode_boundary(MCGAL::Halfedge* h) = 0;
+    virtual bool encode_boundary(MCGAL::Halfedge* h) = 0;
 
     std::shared_ptr<MCGAL::Mesh> mesh_;
 };

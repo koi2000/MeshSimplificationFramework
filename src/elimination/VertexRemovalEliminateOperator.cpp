@@ -1,46 +1,62 @@
+/*
+ * @Author: koi
+ * @Date: 2025-08-27 22:37:03
+ * @Description:
+ */
 #include "VertexRemovalEliminateOperator.h"
 #include "Facet.h"
 #include "Global.h"
+#include "Halfedge.h"
 #include "Mesh.h"
 #include "Vertex.h"
+#include "common/Define.h"
 #include <vector>
 
 void VertexRemovalEliminateOperator::init(std::shared_ptr<MCGAL::Mesh> mesh) {
     mesh_ = mesh;
 }
 
-void VertexRemovalEliminateOperator::eliminate(MCGAL::Halfedge* h) {
+bool VertexRemovalEliminateOperator::eliminate(MCGAL::Halfedge* h) {
     if (h == nullptr)
-        return;
-    remove_point(h);
-    triangulate(h);
-    postprocess(h);
-    encode_boundary(h);
+        return false;
+
+    CHECK_TRUE(remove_point(h));
+    CHECK_TRUE(triangulate(h));
+    CHECK_TRUE(postprocess(h));
+    CHECK_TRUE(encode_boundary(h));
+    return true;
 }
 
-void VertexRemovalEliminateOperator::remove_point(MCGAL::Halfedge* h) {
+bool VertexRemovalEliminateOperator::remove_point(MCGAL::Halfedge* h) {
     if (!h)
-        return;
+        return false;
     h->vertex()->setCollapsed();
     MCGAL::Vertex* removedVertex = h->end_vertex();
     if (!removedVertex || removedVertex->isRemoved())
-        return;
-
-    mesh_->erase_center_vertex(h);
+        return false;
+    h->end_vertex()->setRemoved();
+    MCGAL::Halfedge* hface = mesh_->erase_center_vertex(h);
+    hface->face()->setRemovedVertexPos(h->end_vertex());
+    return true;
 }
 
-void VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
+bool VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
     if (!h)
-        return;
+        return false;
     MCGAL::Facet* polyFace = h->face();
-    if (!polyFace || polyFace->isRemoved())
-        return;
-    h = polyFace->proxyHalfedge();
+    // if (!polyFace || polyFace->isRemoved())
+    //     return false;
+    
     std::vector<MCGAL::Vertex*> polyVerts = polyFace->getVertices();
     std::vector<MCGAL::Halfedge*> polyHalfedges = polyFace->getHalfedges();
     int n = static_cast<int>(polyVerts.size());
-    if (n < 4)
-        return;
+    if (n < 4) {
+        h->face()->setSplittable();
+        return true;
+    }
+    h->face()->setSplittable();
+    h = polyFace->proxyHalfedge();
+
     for (int i = 0; i < n - 2; ++i) {
         if (i == 0) {
             MCGAL::Halfedge* h0 = polyHalfedges[0];
@@ -81,14 +97,14 @@ void VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
             mesh_->add_face(newFace);
         }
     }
-    h->face()->setSplittable();
-    h->face()->setRemovedVertexPos(h->end_vertex());
+    
+    return true;
 }
 
-void VertexRemovalEliminateOperator::postprocess(MCGAL::Halfedge* h) {
-    (void)h;
+bool VertexRemovalEliminateOperator::postprocess(MCGAL::Halfedge* h) {
+    return true;
 }
 
-void VertexRemovalEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
-    (void)h;
+bool VertexRemovalEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
+    return true;
 }
