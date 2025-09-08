@@ -26,6 +26,7 @@ void PriorityErrorSelector::addIsRemovableOperator(std::shared_ptr<IsRemovableOp
 PriorityErrorSelector::~PriorityErrorSelector() {}
 
 void PriorityErrorSelector::reset() {
+    mesh_->resetState();
     queue.buildFromMesh(mesh_);
 }
 

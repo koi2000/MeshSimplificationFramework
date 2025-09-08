@@ -35,7 +35,7 @@ int main() {
 
     CompressOptions coptions = CompressOptions::Builder()
                                    .setSelect(selectOp)
-                                   .setRound(10)
+                                   .setRound(15)
                                    .setEliminate(eliminateOp)
                                    .setPath("/home/koi/mastercode/MeshSimplificationFramework/static/untitled.off")
                                    .setOutputPath("./compress.bin")

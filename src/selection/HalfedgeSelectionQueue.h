@@ -104,25 +104,27 @@ class HalfedgeSelectionQueue {
                     continue;
                 auto& halfedges = v->halfedges();
                 for (MCGAL::Halfedge* h : halfedges) {
-                    if (h == nullptr)
+                    if (h == nullptr || h->isRemoved())
                         continue;
                     // Only index each undirected edge once (by convention: original flag or lower poolId)
-                    if (!isValid(h))
-                        continue;
-                    if (h->opposite() && h->poolId() > h->opposite()->poolId())
-                        continue;
+                    // if (!isValid(h))
+                    //     continue;
+                    // if (h->opposite() && h->poolId() > h->opposite()->poolId())
+                    //     continue;
                     pushOrUpdate(h);
                 }
             }
         }
+        int i = heap_.size();
+        int j = 0;
     }
 
     // Insert or update the error for a given halfedge.
     void pushOrUpdate(MCGAL::Halfedge* edge) {
         if (edge == nullptr)
             return;
-        if (!isValid(edge))
-            return;
+        // if (!isValid(edge))
+        //     return;
         float err = computeError(edge);
         std::uint64_t version = ++globalVersionCounter_;
         currentVersions_[edge] = version;

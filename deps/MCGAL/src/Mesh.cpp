@@ -133,6 +133,9 @@ void Mesh::resetState() {
     }
     for (int i = 0; i < faces_.size(); i++) {
         faces_[i]->resetState();
+        if (faces_[i]->isRemoved()) {
+            continue;
+        }
         for (auto it = faces_[i]->halfedges_begin(); it != faces_[i]->halfedges_end(); it++) {
             (*it)->resetState();
         }

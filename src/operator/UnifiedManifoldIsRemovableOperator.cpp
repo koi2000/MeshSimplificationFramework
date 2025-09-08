@@ -41,14 +41,15 @@ bool UnifiedManifoldIsRemovableOperator::isRemovable(MCGAL::Halfedge* h) {
         if (st->isAdded()) {
             return false;
         }
+        vs.push_back(st->vertex());
         st = st->next()->opposite()->next();
     } while (st != ed);
     if (!(v->vertex_degree() > 2 && v->vertex_degree() < 8)) {
         return false;
     }
-    for (MCGAL::Halfedge* hit : h->end_vertex()->halfedges()) {
-        vs.push_back(hit->end_vertex());
-    }
+    // for (MCGAL::Halfedge* hit : h->end_vertex()->halfedges()) {
+    //     vs.push_back(hit->end_vertex());
+    // }
     int n = vs.size();
     for (int i = 0; i < vs.size(); i++) {
         int j = ((i + 2) % n);

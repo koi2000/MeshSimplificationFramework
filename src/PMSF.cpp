@@ -19,7 +19,7 @@
 #include <memory>
 #include <string>
 
-#define DEBUG
+// #define DEBUG
 
 using epTargetPoints = OpenMesh::HPropHandleT<MCGAL::Point>;
 using vpQuadrics = OpenMesh::VPropHandleT<int>;
@@ -73,7 +73,7 @@ void PMSF::compress(CompressOptions& options) {
     seedIsRemovableOperator->init(nullptr, seed, nullptr);
     select->addIsRemovableOperator(seedIsRemovableOperator);
     int count = 0;
-    #ifdef DEBUG
+#ifdef DEBUG
         std::cout << count << std::endl;
         count = 0;
         std::string outpath = "./mesh_origin.off";
@@ -94,7 +94,7 @@ void PMSF::compress(CompressOptions& options) {
         count = 0;
         std::string outpath = "./mesh_" + std::to_string(i) + ".off";
         mesh->dumpto_oldtype(outpath);
-        mesh->resetState();
+        // mesh->resetState();
 #endif
     }
     serializer->initBuffer(BUFFER_SIZE);
