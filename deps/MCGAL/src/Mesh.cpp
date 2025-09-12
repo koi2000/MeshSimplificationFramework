@@ -2,6 +2,7 @@
 #include "Facet.h"
 #include "Global.h"
 #include "Halfedge.h"
+#include "Point.h"
 #include "Vertex.h"
 #include "VertexSplitNode.h"
 #include "biops.h"
@@ -1056,8 +1057,21 @@ bool Mesh::loadOFF(std::string path) {
         float x, y, z;
         file >> x >> y >> z;
         Vertex* vt = MCGAL::contextPool.allocateVertexFromPool(DEFAULT_MESH_ID, x, y, z);
+        if (enableQuantization) {
+            bboxMin = MCGAL::Point(std::min(bboxMin.x(), x), std::min(bboxMin.y(), y), std::min(bboxMin.z(), z));
+            bboxMax = MCGAL::Point(std::max(bboxMax.x(), x), std::max(bboxMax.y(), y), std::max(bboxMax.z(), z));
+        }
+
         // Vertex* vt = new Vertex(x, y, z);
         this->vertices_.push_back(vt);
+    }
+    if (enableQuantization) {
+        float f_maxRange = 0;
+        for (unsigned i = 0; i < 3; ++i) {
+            float range = bboxMax[i] - bboxMin[i];
+            f_maxRange = std::max(range, f_maxRange);
+        }
+        f_quantStep = f_maxRange / (1 << i_nbQuantBits);
     }
 
     for (int i = 0; i < nb_faces; ++i) {
@@ -1087,6 +1101,14 @@ inline bool isFacetRemovable(MCGAL::Facet* fit) {
 
 inline bool isVertexRemovable(MCGAL::Vertex* vit) {
     return vit->isRemoved();
+}
+
+PointInt Mesh::floatPosToInt(Point p) {
+    return PointInt((p[0] - bboxMin[0]) / f_quantStep, (p[1] - bboxMin[1]) / f_quantStep, (p[2] - bboxMin[2]) / f_quantStep);
+}
+
+MCGAL::Point Mesh::intPosToFloat(PointInt p) {
+    return Point(bboxMin[0] + (p[0] + 0.5) * f_quantStep, bboxMin[1] + (p[1] + 0.5) * f_quantStep, bboxMin[2] + (p[2] + 0.5) * f_quantStep);
 }
 
 MCGAL::Vector3 Mesh::computeNormal() {

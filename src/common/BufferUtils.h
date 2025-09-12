@@ -1,11 +1,13 @@
 #ifndef BUFFER_UTILS_H
 #define BUFFER_UTILS_H
 #include "core.h"
+#include "EntropyCodec.h"
 #include <assert.h>
 #include <cstring>  // For memcpy
 #include <immintrin.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <vector>
 
 static void writeCharPointer(char* buffer, int& dataOffset, char* data, int size) {
     std::memcpy(buffer + dataOffset, data, size * sizeof(char));
@@ -29,7 +31,7 @@ static char* readCharPointer(char* buffer, int& dataOffset, int size) {
 }
 
 // Write a given number of bits in a buffer.
-static void writeBits(uint32_t data, unsigned i_nbBits, char* p_dest, unsigned& i_bitOffset, size_t& offset) {
+static void writeBits(uint32_t data, unsigned i_nbBits, char* p_dest, unsigned& i_bitOffset, int& offset) {
     assert(i_nbBits <= 25);
 
     uint32_t dataToAdd = data << (32 - i_nbBits - i_bitOffset);
@@ -37,7 +39,8 @@ static void writeBits(uint32_t data, unsigned i_nbBits, char* p_dest, unsigned& 
     dataToAdd = __builtin_bswap32(dataToAdd);  // Call a GCC builtin function.
 
     // Write the data.
-    *(uint32_t*)p_dest |= dataToAdd;
+    char* dst = p_dest + offset;
+    *(uint32_t*)dst |= dataToAdd;
 
     // Update the size and offset.
     offset += (i_bitOffset + i_nbBits) / 8;
@@ -47,7 +50,7 @@ static void writeBits(uint32_t data, unsigned i_nbBits, char* p_dest, unsigned& 
 /**
  * Read a given number of bits in a buffer.
  */
-static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, size_t& offset) {
+static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, int& offset) {
     assert(i_nbBits <= 25);
 
     // Build the mask.
@@ -57,7 +60,8 @@ static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, 
     // Swap the mask bytes because the x86 architecture is little endian.
     mask = __builtin_bswap32(mask);  // Call a GCC builtin function.
 
-    uint32_t data = *(uint32_t*)p_src & mask;
+    char* src = p_src + offset;
+    uint32_t data = *(uint32_t*)src & mask;
 
     // Swap the integer bytes because the x86 architecture is little endian.
     data = __builtin_bswap32(data);  // Call a GCC builtin function.
@@ -71,11 +75,48 @@ static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, 
     return data;
 }
 
+
 // Write a floating point number in the data buffer.
 static void writeFloat(char* buffer, int& dataOffset, float f) {
     *(float*)(buffer + dataOffset) = f;
     dataOffset += sizeof(float);
 }
+
+// static void writeBits(uint32_t data, unsigned i_nbBits, char* p_dest, unsigned& i_bitOffset, int& offset) {
+//     assert(i_nbBits <= 25);
+
+//     for (unsigned i = 0; i < i_nbBits; ++i) {
+//         unsigned bit = (data >> (i_nbBits - 1 - i)) & 1;
+//         unsigned bytePos = offset + (i_bitOffset / 8);
+//         unsigned bitPos = 7 - (i_bitOffset % 8); // 高位在前
+//         p_dest[bytePos] &= ~(1 << bitPos); // 先清零
+//         p_dest[bytePos] |= (bit << bitPos);
+//         ++i_bitOffset;
+//         if (i_bitOffset == 8) {
+//             i_bitOffset = 0;
+//             ++offset;
+//         }
+//     }
+// }
+
+// // 读取指定数量的比特从缓冲区
+// static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, int& offset) {
+//     assert(i_nbBits <= 25);
+
+//     uint32_t result = 0;
+//     for (unsigned i = 0; i < i_nbBits; ++i) {
+//         unsigned bytePos = offset + (i_bitOffset / 8);
+//         unsigned bitPos = 7 - (i_bitOffset % 8); // 高位在前
+//         unsigned bit = (p_src[bytePos] >> bitPos) & 1;
+//         result = (result << 1) | bit;
+//         ++i_bitOffset;
+//         if (i_bitOffset == 8) {
+//             i_bitOffset = 0;
+//             ++offset;
+//         }
+//     }
+//     return result;
+// }
 
 /**
  * Read a floating point number in the data buffer.
@@ -269,4 +310,86 @@ static MCGAL::Point readPointByOffsetRef(char* buffer, int& offset) {
     return pt;
 }
 
+// Write a compressed block as: [origSize:int][compSize:int][payload]
+// If compression fails or doesn't save space, writes uncompressed data (compSize=0)
+static void writeCompressedBlock(char* buffer, int& dataOffset, const char* data, int dataSize) {
+    if (dataSize <= 0 || data == nullptr) {
+        writeInt(buffer, dataOffset, 0);
+        writeInt(buffer, dataOffset, 0);
+        return;
+    }
+    
+    // Try to compress the data
+    std::vector<uint8_t> compressed;
+    bool compressionOk = zlibCompress(reinterpret_cast<const uint8_t*>(data), 
+                                     static_cast<size_t>(dataSize), 
+                                     compressed, 
+                                     Z_BEST_COMPRESSION);
+    
+    // If compression failed or didn't save space, store uncompressed
+    if (!compressionOk || compressed.size() >= static_cast<size_t>(dataSize)) {
+        writeInt(buffer, dataOffset, dataSize);
+        writeInt(buffer, dataOffset, 0); // compSize = 0 means uncompressed
+        writeCharPointer(buffer, dataOffset, const_cast<char*>(data), dataSize);
+    } else {
+        // Store compressed data
+        writeInt(buffer, dataOffset, dataSize);
+        writeInt(buffer, dataOffset, static_cast<int>(compressed.size()));
+        writeCharPointer(buffer, dataOffset, reinterpret_cast<char*>(compressed.data()), static_cast<int>(compressed.size()));
+    }
+}
+
+// Read a possibly compressed block written as: [origSize:int][compSize:int][payload]
+// If compSize == 0, payload length == origSize and is uncompressed.
+// Returns newly allocated char* of length origSize; caller owns memory.
+static char* readCompressedBlock(char* buffer, int& dataOffset) {
+    int origSize = readInt(buffer, dataOffset);
+    int compSize = readInt(buffer, dataOffset);
+    if (origSize <= 0) {
+        return nullptr;
+    }
+    if (compSize == 0) {
+        char* out = new char[origSize];
+        readCharPointer(buffer, dataOffset, out, origSize);
+        return out;
+    }
+    const unsigned char* compPtr = reinterpret_cast<unsigned char*>(buffer + dataOffset);
+    dataOffset += compSize;
+    std::vector<uint8_t> decompressed;
+    bool ok = zlibDecompress(compPtr, static_cast<size_t>(compSize), decompressed, static_cast<size_t>(origSize));
+    if (!ok || decompressed.size() != static_cast<size_t>(origSize)) {
+        return nullptr;
+    }
+    char* out = new char[origSize];
+    std::memcpy(out, decompressed.data(), static_cast<size_t>(origSize));
+    return out;
+}
+
+
+static void serializeCharPointer(char* val, int size, char*& outBlock, int& outBlockSize) {
+    outBlock = nullptr;
+    outBlockSize = 0;
+    if (size <= 0 || val == nullptr) {
+        outBlockSize = sizeof(int) * 2;
+        outBlock = new char[outBlockSize];
+        int localOffset = 0;
+        writeInt(outBlock, localOffset, 0);
+        writeInt(outBlock, localOffset, 0);
+        return;
+    }
+    std::vector<uint8_t> compressed;
+    bool ok = zlibCompress(reinterpret_cast<const uint8_t*>(val), static_cast<size_t>(size), compressed);
+    int compSize = (!ok || compressed.size() >= static_cast<size_t>(size)) ? 0 : static_cast<int>(compressed.size());
+
+    outBlockSize = static_cast<int>(sizeof(int) * 2 + (compSize == 0 ? size : compSize));
+    outBlock = new char[outBlockSize];
+    int localOffset = 0;
+    writeInt(outBlock, localOffset, size);
+    writeInt(outBlock, localOffset, compSize);
+    if (compSize == 0) {
+        writeCharPointer(outBlock, localOffset, reinterpret_cast<uint8_t*>(val), size);
+    } else {
+        writeCharPointer(outBlock, localOffset, compressed.data(), compSize);
+    }
+}
 #endif

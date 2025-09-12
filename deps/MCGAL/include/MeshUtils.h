@@ -3,9 +3,11 @@
 
 #include "BufferUtils.h"
 #include "Mesh.h"
+#include "Point.h"
 #include "Vertex.h"
 #include "core.h"
 #include "symetric_matrix.h"
+#include <cstdint>
 #include <memory>
 
 namespace MCGAL {
@@ -180,7 +182,7 @@ static std::shared_ptr<MCGAL::Mesh> buildFromBuffer(int meshId, std::deque<MCGAL
 static std::shared_ptr<MCGAL::Mesh> readBaseMesh(int meshId, char* buffer, int& dataOffset) {
     unsigned i_nbVerticesBaseMesh = readInt(buffer, dataOffset);
     unsigned i_nbFacesBaseMesh = readInt(buffer, dataOffset);
-    MCGAL::contextPool.registerPool(i_nbVerticesBaseMesh, i_nbFacesBaseMesh * 5, i_nbFacesBaseMesh);
+    MCGAL::contextPool.registerPool(i_nbVerticesBaseMesh * 5, i_nbFacesBaseMesh * 15, i_nbFacesBaseMesh * 5);
     std::deque<MCGAL::Point>* p_pointDeque = new std::deque<MCGAL::Point>();
     std::deque<uint32_t*>* p_faceDeque = new std::deque<uint32_t*>();
     for (unsigned i = 0; i < i_nbVerticesBaseMesh; ++i) {
@@ -206,6 +208,76 @@ static std::shared_ptr<MCGAL::Mesh> readBaseMesh(int meshId, char* buffer, int& 
     return mesh;
 }
 
+static PointInt floatPosToInt(Point p, MCGAL::Point bboxMin, int f_quantStep) {
+    return PointInt((p[0] - bboxMin[0]) / f_quantStep, (p[1] - bboxMin[1]) / f_quantStep, (p[2] - bboxMin[2]) / f_quantStep);
+}
+
+static inline MCGAL::Point intPosToFloat(PointInt p, MCGAL::Point bboxMin, int f_quantStep) {
+    return Point(bboxMin[0] + (p[0] + 0.5) * f_quantStep, bboxMin[1] + (p[1] + 0.5) * f_quantStep, bboxMin[2] + (p[2] + 0.5) * f_quantStep);
+}
+
+static std::shared_ptr<MCGAL::Mesh> readBaseMeshWithQuantization(int meshId, char* buffer, int& dataOffset, bool enableQuantization = true) {
+    char nbQuantBits;
+    MCGAL::Point bboxMin;
+    float f_quantStep;
+    if (enableQuantization) {
+        nbQuantBits = readChar(buffer, dataOffset);
+        bboxMin = readPoint(buffer, dataOffset);
+        f_quantStep = readFloat(buffer, dataOffset);
+    }
+
+    unsigned i_nbVerticesBaseMesh = readInt(buffer, dataOffset);
+    unsigned i_nbFacesBaseMesh = readInt(buffer, dataOffset);
+    MCGAL::contextPool.registerPool(i_nbVerticesBaseMesh * 5, i_nbFacesBaseMesh * 15, i_nbFacesBaseMesh * 5);
+    std::deque<MCGAL::Point>* p_pointDeque = new std::deque<MCGAL::Point>();
+    std::deque<uint32_t*>* p_faceDeque = new std::deque<uint32_t*>();
+
+    unsigned i_bitOffset = 0;
+    for (unsigned i = 0; i < i_nbVerticesBaseMesh; ++i) {
+        MCGAL::Point pos;
+        if (enableQuantization) {
+            int p[3];
+            for (int i = 0; i < 3; i++) {
+                p[i] = readBits(nbQuantBits, buffer, i_bitOffset, dataOffset);
+            }
+            MCGAL::PointInt pi = PointInt(p[0], p[1], p[2]);
+            pos[0] = bboxMin[0] + (p[0] + 0.5) * f_quantStep;
+            pos[1] = bboxMin[1] + (p[1] + 0.5) * f_quantStep;
+            pos[2] = bboxMin[2] + (p[2] + 0.5) * f_quantStep;
+            // pos = intPosToFloat(pi, bboxMin, f_quantStep);
+        } else {
+            pos = readPoint(buffer, dataOffset);
+        }
+
+        p_pointDeque->push_back(pos);
+    }
+    i_bitOffset = 0;
+    dataOffset++;
+    
+    char connBit = readChar(buffer, dataOffset);
+    // uint32_t ddd = readBits(connBit, buffer, i_bitOffset, --dataOffset);
+    for (unsigned i = 0; i < i_nbFacesBaseMesh; ++i) {
+        // int nv = readInt(buffer, dataOffset);
+        uint32_t* f = new uint32_t[3 + 1];
+        f[0] = 3;
+        for (unsigned j = 1; j < 3 + 1; ++j) {
+            f[j] = readBits(connBit, buffer, i_bitOffset, dataOffset);
+        }
+        p_faceDeque->push_back(f);
+    }
+    auto mesh = buildFromBuffer(meshId, p_pointDeque, p_faceDeque);
+    if (enableQuantization) {
+        mesh->bboxMin = bboxMin;
+        mesh->f_quantStep = f_quantStep;
+    }
+    for (unsigned i = 0; i < p_faceDeque->size(); ++i) {
+        delete[] p_faceDeque->at(i);
+    }
+    delete p_faceDeque;
+    delete p_pointDeque;
+    return mesh;
+}
+
 static inline void remove_tip(Halfedge* h) {
     h->setNext(h->next()->opposite()->next());
 }
@@ -214,7 +286,7 @@ static inline void remove_tip(Halfedge* h) {
  * 还是顺序的问题 明天定位一下顺序的问题处在哪里
  */
 static Halfedge* join_face(Halfedge* h) {
-    if(h->poolId() == 73932) {
+    if (h->poolId() == 73932) {
         int i = 0;
     }
     Halfedge* hprev = find_prev(h);
@@ -223,7 +295,7 @@ static Halfedge* join_face(Halfedge* h) {
     remove_tip(gprev);
     h->opposite()->setRemoved();
     h->setRemoved();
-    if(gprev->face()->poolId() == 24644 || hprev->face()->poolId() == 24644) {
+    if (gprev->face()->poolId() == 24644 || hprev->face()->poolId() == 24644) {
         int i = 0;
     }
     if (gprev->face()->isSplittable()) {

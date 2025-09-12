@@ -19,7 +19,7 @@ class BasicSymbolCollectOperator : public SymbolCollectOperator {
     };
 
     void collect(MCGAL::Halfedge* seed) override;
-    int exportToBuffer(char* buffer) override;
+    int exportToBuffer(char* buffer, bool enableQuantization = false) override;
 
   private:
     void collectHalfedgeSymbol(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed);

@@ -15,8 +15,8 @@
 
 std::shared_ptr<MCGAL::Mesh> BasicDeserializeOperator::deserializeBaseMesh() {
     MCGAL::contextPool.initPoolSize(1);
-    
-    std::shared_ptr<MCGAL::Mesh> mesh = MCGAL::readBaseMesh(DEFAULT_MESH_ID, buffer_, dataOffset_);
+
+    std::shared_ptr<MCGAL::Mesh> mesh = MCGAL::readBaseMeshWithQuantization(DEFAULT_MESH_ID, buffer_, dataOffset_);
     // find seed
     MCGAL::Vertex* v0 = mesh->vertices()[0];
     MCGAL::Vertex* v1 = mesh->vertices()[1];
@@ -35,6 +35,7 @@ void BasicDeserializeOperator::deserializeOneRound() {
     std::vector<MCGAL::Vertex*> vertices;
     std::vector<MCGAL::Halfedge*> halfedges;
     std::vector<MCGAL::Facet*> facets;
+    symbolReadOperator_->enableQuantization(mesh_->bboxMin, mesh_->f_quantStep);
     symbolReadOperator_->collect(seed, buffer_, dataOffset_, vertices, halfedges, facets);
     reconstructOperator_->reconstruct(vertices, halfedges, facets);
 }

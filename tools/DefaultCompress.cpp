@@ -37,8 +37,11 @@ int main() {
                                    .setSelect(selectOp)
                                    .setRound(15)
                                    .setEliminate(eliminateOp)
+                                   .setEnableCompress(true)
+                                   .setEnablePrediction(true)
+                                   .setEnableQuantization(true)
                                    .setPath("/home/koi/mastercode/MeshSimplificationFramework/static/untitled.off")
-                                   .setOutputPath("./compress.bin")
+                                   .setOutputPath("./compress_1.bin")
                                    .build();
     pmsf.compress(coptions);
     return 0;

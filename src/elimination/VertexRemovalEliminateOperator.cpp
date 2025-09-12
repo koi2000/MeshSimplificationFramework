@@ -36,7 +36,8 @@ bool VertexRemovalEliminateOperator::remove_point(MCGAL::Halfedge* h) {
         return false;
     h->end_vertex()->setRemoved();
     MCGAL::Halfedge* hface = mesh_->erase_center_vertex(h);
-    hface->face()->setRemovedVertexPos(h->end_vertex());
+    // hface->face()->setRemovedVertexPos(h->end_vertex()->point() - h->vertex()->point());
+    hface->face()->setRemovedVertexPos(h->end_vertex()->point());
     return true;
 }
 

@@ -8,8 +8,8 @@
 
 #include "Mesh.h"
 #include <deque>
-#include <vector>
 #include <memory>
+#include <vector>
 
 /**
  * @brief 符号收集操作符
@@ -17,12 +17,12 @@
  */
 class SymbolCollectOperator {
   public:
-    SymbolCollectOperator() = default;                         
+    SymbolCollectOperator() = default;
     virtual void init(std::shared_ptr<MCGAL::Mesh> mesh) = 0;
     // 收集一轮的信息
     virtual void collect(MCGAL::Halfedge* h) = 0;
     // 将收集到的信息导出到buffer中
-    virtual int exportToBuffer(char* buffer) = 0;
+    virtual int exportToBuffer(char* buffer, bool enableQuantization = false) = 0;
 
     std::shared_ptr<MCGAL::Mesh> mesh_;
 };

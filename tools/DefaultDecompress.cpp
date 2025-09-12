@@ -23,7 +23,7 @@ int main() {
     std::shared_ptr<DeserializeOperator> deserializeOperator = std::make_shared<BasicDeserializeOperator>(symbolReadOperator, reconstructOperator);
     DecompressOptions options = DecompressOptions::Builder()
                                     .setDeserializeOperator(deserializeOperator)
-                                    .setPath("./compress.bin")
+                                    .setPath("./compress_1.bin")
                                     .build();
     pmsf.decompress(options);
     return 0;

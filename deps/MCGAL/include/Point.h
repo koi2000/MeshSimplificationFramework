@@ -119,6 +119,113 @@ class Point {
     float v[3];
 };
 
+class PointInt {
+  public:
+    PointInt() {
+        v[0] = 0.0;
+        v[1] = 0.0;
+        v[2] = 0.0;
+    }
+
+    PointInt(int x, int y, int z) {
+        v[0] = x;
+        v[1] = y;
+        v[2] = z;
+    }
+
+    PointInt(PointInt* pt) {
+        assert(pt);
+        for (int i = 0; i < 3; i++) {
+            v[i] = pt->v[i];
+        }
+    };
+
+    int x() const {
+        return v[0];
+    }
+
+    int y() const {
+        return v[1];
+    }
+
+    int z() const {
+        return v[2];
+    }
+
+    // 两个点减法返回一个向量
+    PointInt operator-(const PointInt& p) const {
+        return PointInt(v[0] - p.x(), v[1] - p.y(), v[2] - p.z());
+    }
+
+    PointInt operator/(const int div) const {
+        return PointInt(v[0] / 2, v[1] / 2, v[2] / 2);
+    }
+
+    int& operator[](int index) {
+        if (index >= 0 && index < 3) {
+            return v[index];
+        } else {
+            throw std::out_of_range("Index out of range");
+        }
+    }
+
+    bool operator==(const PointInt& p) {
+        return v[0] == p.x() && v[1] == p.y() && v[2] == p.z();
+        // return v[0] == p.x() && v[1] == p.y() && v[2] == p.z();
+    }
+
+    bool operator<(const PointInt& p) const {
+        if (v[0] != p.v[0])
+            return v[0] < p.v[0];
+        if (v[1] != p.v[1])
+            return v[1] < p.v[1];
+        return v[2] < p.v[2];
+    }
+
+    bool operator>(const PointInt& p) const {
+        if (v[0] != p.v[0])
+            return v[0] > p.v[0];
+        if (v[1] != p.v[1])
+            return v[1] > p.v[1];
+        return v[2] > p.v[2];
+    }
+
+    PointInt operator-(const PointInt& p) {
+        return PointInt(v[0] - p.x(), v[1] - p.y(), v[2] - p.z());
+    }
+
+    PointInt operator+(const PointInt& p) {
+        return PointInt(v[0] + p.x(), v[1] + p.y(), v[2] + p.z());
+    }
+
+    float length() {
+        return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    }
+
+    // 向量叉积
+    PointInt cross(const PointInt& v) const {
+        return PointInt(y() * v.z() - z() * v.y(), z() * v.x() - x() * v.z(), x() * v.y() - y() * v.x());
+    }
+
+    // 向量点积
+    double dot(const PointInt& v) const {
+        return x() * v.x() + y() * v.y() + z() * v.z();
+    }
+
+    void normalize() {
+        float len = length();
+        if (len == 0) {
+            throw std::runtime_error("Cannot normalize a zero vector");
+        }
+        v[0] /= len;
+        v[1] /= len;
+        v[2] /= len;
+    }
+
+  public:
+    int v[3];
+};
+
 // 定义向量类
 class Vector3 : public Point {
   public:

@@ -19,7 +19,7 @@
 #include <memory>
 #include <string>
 
-// #define DEBUG
+#define DEBUG
 
 using epTargetPoints = OpenMesh::HPropHandleT<MCGAL::Point>;
 using vpQuadrics = OpenMesh::VPropHandleT<int>;
@@ -60,7 +60,8 @@ void PMSF::compress(CompressOptions& options) {
     std::shared_ptr<SelectOperator> select = options.getSelect();
     std::shared_ptr<EliminateOperator> eliminate = options.getEliminate();
     std::shared_ptr<SymbolCollectOperator> collector = std::make_shared<BasicSymbolCollectOperator>();
-    std::shared_ptr<SerializeOperator> serializer = std::make_shared<BasicSerializeOperator>(collector);
+    std::shared_ptr<SerializeOperator> serializer =
+        std::make_shared<BasicSerializeOperator>(collector, options.isEnablePrediction(), options.isEnableQuantization(), options.isEnableCompress());
     std::shared_ptr<IsRemovableOperator> seedIsRemovableOperator = std::make_shared<SeedIsRemovableOperator>();
 
     // set seed
@@ -74,11 +75,11 @@ void PMSF::compress(CompressOptions& options) {
     select->addIsRemovableOperator(seedIsRemovableOperator);
     int count = 0;
 #ifdef DEBUG
-        std::cout << count << std::endl;
-        count = 0;
-        std::string outpath = "./mesh_origin.off";
-        mesh->dumpto_oldtype(outpath);
-        mesh->resetState();
+    std::cout << count << std::endl;
+    count = 0;
+    std::string outpath = "./mesh_origin.off";
+    mesh->dumpto_oldtype(outpath);
+    mesh->resetState();
 #endif
     for (int i = 0; i < options.getRound(); i++) {
         MCGAL::Halfedge* candidate = nullptr;

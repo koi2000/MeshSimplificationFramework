@@ -79,13 +79,15 @@ set(ALL_SOURCES
     ${selection_SOURCES}
 )
 
+find_package(ZLIB REQUIRED)
+
 add_executable(DefaultCompress tools/DefaultCompress.cpp ${ALL_SOURCES})
 target_include_directories(DefaultCompress PUBLIC "src" )
-target_link_libraries(DefaultCompress MCGAL_static)
+target_link_libraries(DefaultCompress MCGAL_static ZLIB::ZLIB)
 
 add_executable(DefaultDecompress tools/DefaultDecompress.cpp ${ALL_SOURCES})
 target_include_directories(DefaultDecompress PUBLIC "src" )
-target_link_libraries(DefaultDecompress MCGAL_static)
+target_link_libraries(DefaultDecompress MCGAL_static ZLIB::ZLIB)
 
 
 get_property(targetIncludes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)

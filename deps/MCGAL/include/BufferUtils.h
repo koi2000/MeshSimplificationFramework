@@ -40,9 +40,9 @@ static void writeBits(uint32_t data, unsigned i_nbBits, char* p_dest, unsigned& 
     uint32_t dataToAdd = data << (32 - i_nbBits - i_bitOffset);
     // Swap the integer bytes because the x86 architecture is little endian.
     dataToAdd = __builtin_bswap32(dataToAdd);  // Call a GCC builtin function.
-
+    char* dst = p_dest + offset;
     // Write the data.
-    *(uint32_t*)p_dest |= dataToAdd;
+    *(uint32_t*)dst |= dataToAdd;
 
     // Update the size and offset.
     offset += (i_bitOffset + i_nbBits) / 8;
@@ -52,7 +52,7 @@ static void writeBits(uint32_t data, unsigned i_nbBits, char* p_dest, unsigned& 
 /**
  * Read a given number of bits in a buffer.
  */
-static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, size_t& offset) {
+static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, int& offset) {
     assert(i_nbBits <= 25);
 
     // Build the mask.
@@ -61,7 +61,7 @@ static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, 
         mask |= 1 << i;
     // Swap the mask bytes because the x86 architecture is little endian.
     mask = __builtin_bswap32(mask);  // Call a GCC builtin function.
-
+    char* src = p_src + offset;
     uint32_t data = *(uint32_t*)p_src & mask;
 
     // Swap the integer bytes because the x86 architecture is little endian.

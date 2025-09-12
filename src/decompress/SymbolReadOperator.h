@@ -8,6 +8,7 @@
 
 #include "Halfedge.h"
 #include "Mesh.h"
+#include "Point.h"
 
 /**
  * @brief 符号收集操作符
@@ -23,5 +24,13 @@ class SymbolReadOperator {
                          std::vector<MCGAL::Vertex*>& vertices,
                          std::vector<MCGAL::Halfedge*>& halfedge,
                          std::vector<MCGAL::Facet*>& facets) = 0;
+    void enableQuantization(MCGAL::Point bboxMin, float f_quantStep) {
+        enableQuantization_ = true;
+        bboxMin_ = bboxMin;
+        f_quantStep_ = f_quantStep;
+    }
+    bool enableQuantization_ = false;
+    MCGAL::Point bboxMin_;
+    float f_quantStep_;
 };
 #endif

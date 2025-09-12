@@ -21,7 +21,11 @@
  */
 class BasicSerializeOperator : public SerializeOperator {
   public:
-    BasicSerializeOperator(std::shared_ptr<SymbolCollectOperator> collector) : SerializeOperator(collector) {}
+    BasicSerializeOperator(std::shared_ptr<SymbolCollectOperator> collector,
+                           bool enablePrediction = false,
+                           bool enableQuantization = false,
+                           bool enableCompress = false)
+        : SerializeOperator(collector, enablePrediction, enableQuantization, enableCompress) {}
 
     void initBuffer(int size);
 
@@ -31,7 +35,9 @@ class BasicSerializeOperator : public SerializeOperator {
 
     void serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed);
 
-    void serializeCharPointer(char* val, int size);
+    // 返回一块新分配的内存块，格式: [origSize:int][compSize:int][payload]
+    // 由调用者负责 delete[] outBlock
+    // void serializeCharPointer(char* val, int size, char*& outBlock, int& outBlockSize);
 
     void serialize(std::string path);
 };

@@ -19,6 +19,8 @@ class CompressOptions {
 
     class Builder {
       public:
+        Builder() : round_(0), enablePrediction_(false), enableQuantization_(false) {}
+
         Builder& setRound(const int r) {
             round_ = r;
             return *this;
@@ -40,6 +42,18 @@ class CompressOptions {
             eliminate_ = e;
             return *this;
         }
+        Builder& setEnableCompress(bool enable) {
+            enableCompress_ = enable;
+            return *this;
+        }
+        Builder& setEnablePrediction(bool enable) {
+            enablePrediction_ = enable;
+            return *this;
+        }
+        Builder& setEnableQuantization(bool enable) {
+            enableQuantization_ = enable;
+            return *this;
+        }
         CompressOptions build() {
             CompressOptions options;
             options.round = round_;
@@ -47,6 +61,9 @@ class CompressOptions {
             options.outputPath = outputPath_;
             options.select = select_;
             options.eliminate = eliminate_;
+            options.enableCompress = enableCompress_;
+            options.enablePrediction = enablePrediction_;
+            options.enableQuantization = enableQuantization_;
             return options;
         }
 
@@ -54,6 +71,9 @@ class CompressOptions {
         int round_;
         std::string path_;
         std::string outputPath_;
+        bool enableCompress_;
+        bool enablePrediction_;
+        bool enableQuantization_;
         std::shared_ptr<SelectOperator> select_;
         std::shared_ptr<EliminateOperator> eliminate_;
     };
@@ -74,8 +94,21 @@ class CompressOptions {
     const std::shared_ptr<EliminateOperator>& getEliminate() const {
         return eliminate;
     }
+    bool isEnableCompress() const {
+        return enableCompress;
+    }
+    bool isEnablePrediction() const {
+        return enablePrediction;
+    }
+    bool isEnableQuantization() const {
+        return enableQuantization;
+    }
 
   private:
+    bool enableCompress = false;
+    bool enablePrediction = false;
+    bool enableQuantization = false;
+
     std::string path;
     std::string outputPath;
     int round = 0;

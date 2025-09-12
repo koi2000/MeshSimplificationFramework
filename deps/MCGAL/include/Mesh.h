@@ -4,9 +4,14 @@
 #include "JemallocStl.h"
 #include "VertexSplitNode.h"
 #include <algorithm>
+#include <climits>
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include "Vertex.h"
+#include "Halfedge.h"
+#include "Facet.h"
+#include "Point.h"
 namespace MCGAL {
 class Vector3;
 class Vertex;
@@ -79,6 +84,10 @@ class Mesh {
 
     bool isEdgeCollapseValid(MCGAL::Halfedge* edge);
 
+    PointInt floatPosToInt(Point p);
+
+    MCGAL::Point intPosToFloat(PointInt p);
+
     MCGAL::Vertex* halfedge_collapse(MCGAL::Halfedge* h, MCGAL::Point newp);
 
     MCGAL::Vertex* halfedge_collapse(MCGAL::Halfedge* h);
@@ -119,6 +128,11 @@ class Mesh {
     JemallocVector<Facet*> faces_;
     int meshId_ = -1;
     int nb_vertices, nb_faces, nb_edges;
+    MCGAL::Point bboxMin = MCGAL::Point(INT_MAX, INT_MAX, INT_MAX);
+    MCGAL::Point bboxMax = MCGAL::Point(INT_MIN, INT_MIN, INT_MIN);
+    bool enableQuantization = true;
+    float f_quantStep;
+    unsigned i_nbQuantBits = 12;
 };
 }  // namespace MCGAL
 #endif

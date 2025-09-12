@@ -19,7 +19,8 @@
  */
 class SerializeOperator {
   public:
-    SerializeOperator(std::shared_ptr<SymbolCollectOperator> collector) : collector_(collector) {}
+    SerializeOperator(std::shared_ptr<SymbolCollectOperator> collector, bool enablePrediction = false, bool enableQuantization = false, bool enableCompress = false)
+        : collector_(collector), enablePrediction_(enablePrediction), enableQuantization_(enableQuantization), enableCompress_(enableCompress) {}
 
     virtual void initBuffer(int size) = 0;
 
@@ -31,8 +32,11 @@ class SerializeOperator {
 
     virtual void serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed) = 0;
 
-    virtual void serializeCharPointer(char* val, int size) = 0;
+    // virtual void serializeCharPointer(char* val, int size) = 0;
 
+    bool enablePrediction_;
+    bool enableCompress_;
+    bool enableQuantization_;
     std::shared_ptr<SymbolCollectOperator> collector_;
     char* buffer_;
     int dataOffset_ = 0;
