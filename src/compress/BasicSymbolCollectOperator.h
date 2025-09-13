@@ -26,6 +26,7 @@ class BasicSymbolCollectOperator : public SymbolCollectOperator {
     void collectFacetSymbol(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed);
 
     std::vector<std::deque<MCGAL::Point>> pointQueues;
+    std::vector<std::deque<MCGAL::PointInt>> ipointQueues;
     std::vector<std::deque<char>> facetSymbolQueues;
     std::vector<std::deque<char>> edgeSymbolQueues;
     

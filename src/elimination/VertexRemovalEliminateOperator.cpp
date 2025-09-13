@@ -8,9 +8,11 @@
 #include "Global.h"
 #include "Halfedge.h"
 #include "Mesh.h"
+#include "Point.h"
 #include "Vertex.h"
 #include "common/Define.h"
 #include <vector>
+#include "MeshUtils.h"
 
 void VertexRemovalEliminateOperator::init(std::shared_ptr<MCGAL::Mesh> mesh) {
     mesh_ = mesh;
@@ -36,8 +38,37 @@ bool VertexRemovalEliminateOperator::remove_point(MCGAL::Halfedge* h) {
         return false;
     h->end_vertex()->setRemoved();
     MCGAL::Halfedge* hface = mesh_->erase_center_vertex(h);
-    // hface->face()->setRemovedVertexPos(h->end_vertex()->point() - h->vertex()->point());
-    hface->face()->setRemovedVertexPos(h->end_vertex()->point());
+
+    MCGAL::Point barycenter(0, 0, 0);
+    MCGAL::Halfedge* st = hface->face()->proxyHalfedge();
+    MCGAL::Halfedge* ed = st;
+    int fsize = 0;
+    do {
+        barycenter = barycenter + st->vertex()->point();
+        fsize++;
+        st = st->next();
+    } while (st != ed);
+    barycenter = barycenter / hface->face()->getVertices().size();
+
+    // barycenter = barycenter / vrNeighborsBefore.size();
+
+    MCGAL::Vector3 normal = (hface->face()->computeNormal() + hface->opposite()->face()->computeNormal()).normalize();
+
+    MCGAL::Vector3i predPos = mesh_->floatPosToInt(barycenter);
+    MCGAL::Vector3i vrPos = mesh_->floatPosToInt(h->end_vertex());
+    MCGAL::Vector3i residual = vrPos - predPos;
+
+    {
+        MCGAL::Vector3 t1, t2;
+        MCGAL::determineFrenetFrame(h->vertex()->point(), h->end_vertex()->point(), normal, t1, t2);
+        MCGAL::Vector3i toEncode = MCGAL::frenetRotation(residual, t1, t2, normal);
+        // hface->face()->setRemovedVertexPosInt(toEncode);
+        hface->face()->setRemovedVertexPosInt(residual);
+        // Vec3i toEncode = vrPos;
+    }
+
+    hface->face()->setRemovedVertexPos(h->end_vertex()->point() - h->vertex()->point());
+    // hface->face()->setRemovedVertexPos(h->end_vertex()->point());
     return true;
 }
 
@@ -47,7 +78,7 @@ bool VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
     MCGAL::Facet* polyFace = h->face();
     // if (!polyFace || polyFace->isRemoved())
     //     return false;
-    
+
     std::vector<MCGAL::Vertex*> polyVerts = polyFace->getVertices();
     std::vector<MCGAL::Halfedge*> polyHalfedges = polyFace->getHalfedges();
     int n = static_cast<int>(polyVerts.size());
@@ -98,7 +129,7 @@ bool VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
             mesh_->add_face(newFace);
         }
     }
-    
+
     return true;
 }
 

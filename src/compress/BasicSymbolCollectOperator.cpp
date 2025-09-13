@@ -18,6 +18,7 @@ void BasicSymbolCollectOperator::collect(MCGAL::Halfedge* seed) {
     std::deque<char> facetSym;
     std::deque<char> edgeSym;
     std::deque<MCGAL::Point> points;
+    std::deque<MCGAL::PointInt> ipoints;
     std::queue<int> gateQueue;
     gateQueue.push(seed->poolId());
     int current_version = MCGAL::BfsVersionMananger::current_version++;
@@ -41,6 +42,7 @@ void BasicSymbolCollectOperator::collect(MCGAL::Halfedge* seed) {
             if (sym) {
                 MCGAL::Point rmved = f->getRemovedVertexPos();
                 points.push_back(rmved);
+                ipoints.push_back(f->getRemovedVertexPosInt());
                 fcount++;
                 faces.push_back(f);
             }
@@ -95,62 +97,13 @@ void BasicSymbolCollectOperator::collect(MCGAL::Halfedge* seed) {
     std::cout << "fcount: " << fcount << std::endl;
     facetSymbolQueues.push_back(facetSym);
     edgeSymbolQueues.push_back(edgeSym);
+    ipointQueues.push_back(ipoints);
     pointQueues.push_back(points);
 }
 
-// int BasicSymbolCollectOperator::exportToBuffer(char* buffer, bool isEnableQuantization) {
-//     int offset = 0;
-    
-//     for (int i = facetSymbolQueues.size() - 1; i >= 0; i--) {
-//         unsigned i_bitOffset = 0;
-//         std::deque<char> facetSym = facetSymbolQueues[i];
-//         std::deque<char> edgeSym = edgeSymbolQueues[i];
-//         std::deque<MCGAL::Point> points = pointQueues[i];
-//         while (!facetSym.empty()) {
-//             char sym = facetSym.front();
-//             facetSym.pop_front();
-//             // writeChar(buffer, offset, sym);
-//             // 268 -> 230
-//             writeBits(sym, 1, buffer, i_bitOffset, offset);
-//         }
-//         // 268 -> 211
-//         while (!edgeSym.empty()) {
-//             char sym = edgeSym.front();
-//             edgeSym.pop_front();
-//             // writeChar(buffer, offset, sym);
-//             writeBits(sym, 1, buffer, i_bitOffset, offset);
-//         }
-//         offset++;
-//     }
-//     char* outBlock = buffer;
-//     int outSize = 0;
-//     offset = 0;
-//     serializeCharPointer(buffer, offset, outBlock, outSize);
-    
-//     writeCharPointer(buffer, offset, outBlock, outSize);
-    
-//     for (int i = facetSymbolQueues.size() - 1; i >= 0; i--) {
-//         unsigned i_bitOffset = 0;
-//         std::deque<char> facetSym = facetSymbolQueues[i];
-//         std::deque<char> edgeSym = edgeSymbolQueues[i];
-//         std::deque<MCGAL::Point> points = pointQueues[i];
-//         MCGAL::Point point = points.front();
-//         points.pop_front();
-//         MCGAL::PointInt pi = mesh_->floatPosToInt(point);
-//         if (isEnableQuantization) {
-//             for (int i = 0; i < 3; i++) {
-//                 writeBits((uint32_t)pi[i], mesh_->i_nbQuantBits, buffer, i_bitOffset, offset);
-//             }
-//         } else {
-//             writePoint(buffer, offset, point);
-//         }
-//     }
-//     return offset;
-// }
-
 int BasicSymbolCollectOperator::exportToBuffer(char* buffer, bool isEnableQuantization) {
     int offset = 0;
-    char* outBlock = buffer;
+
     for (int i = facetSymbolQueues.size() - 1; i >= 0; i--) {
         unsigned i_bitOffset = 0;
         std::deque<char> facetSym = facetSymbolQueues[i];
@@ -162,18 +115,6 @@ int BasicSymbolCollectOperator::exportToBuffer(char* buffer, bool isEnableQuanti
             // writeChar(buffer, offset, sym);
             // 268 -> 230
             writeBits(sym, 1, buffer, i_bitOffset, offset);
-            if (sym) {
-                MCGAL::Point point = points.front();
-                points.pop_front();
-                MCGAL::PointInt pi = mesh_->floatPosToInt(point);
-                if (isEnableQuantization) {
-                    for (int i = 0; i < 3; i++) {
-                        writeBits((uint32_t)pi[i], mesh_->i_nbQuantBits, buffer, i_bitOffset, offset);
-                    }
-                } else {
-                    writePoint(buffer, offset, point);
-                }
-            }
         }
         // 268 -> 211
         while (!edgeSym.empty()) {
@@ -184,5 +125,74 @@ int BasicSymbolCollectOperator::exportToBuffer(char* buffer, bool isEnableQuanti
         }
         offset++;
     }
+    char* outBlock = buffer;
+    int outSize = 0;
+    offset = 0;
+    serializeCharPointer(buffer, offset, outBlock, outSize);
+    writeCharPointer(buffer, offset, outBlock, outSize);
+
+    for (int i = facetSymbolQueues.size() - 1; i >= 0; i--) {
+        unsigned i_bitOffset = 0;
+        std::deque<char> facetSym = facetSymbolQueues[i];
+        std::deque<char> edgeSym = edgeSymbolQueues[i];
+        // std::deque<MCGAL::Point> points = pointQueues[i];
+        std::deque<MCGAL::PointInt> ipoints = ipointQueues[i];
+        while (!ipoints.empty()) {
+            MCGAL::PointInt pi = ipoints.front();
+            ipoints.pop_front();
+            // MCGAL::PointInt pi = mesh_->floatPosToInt(point);
+            if (isEnableQuantization) {
+                for (int i = 0; i < 3; i++) {
+                    writeBits((uint32_t)pi[i], mesh_->i_nbQuantBits, buffer, i_bitOffset, offset);
+                }
+            } else {
+                // writePoint(buffer, offset, point);
+            }
+        }
+    }
+    char* noutBlock = buffer;
+    int noutSize = 0;
+    serializeCharPointer(buffer + outSize, offset, noutBlock, noutSize);
+    writeCharPointer(buffer, outSize, noutBlock, noutSize);
+
     return offset;
 }
+
+// int BasicSymbolCollectOperator::exportToBuffer(char* buffer, bool isEnableQuantization) {
+//     int offset = 0;
+//     char* outBlock = buffer;
+//     for (int i = facetSymbolQueues.size() - 1; i >= 0; i--) {
+//         unsigned i_bitOffset = 0;
+//         std::deque<char> facetSym = facetSymbolQueues[i];
+//         std::deque<char> edgeSym = edgeSymbolQueues[i];
+//         std::deque<MCGAL::Point> points = pointQueues[i];
+//         while (!facetSym.empty()) {
+//             char sym = facetSym.front();
+//             facetSym.pop_front();
+//             // writeChar(buffer, offset, sym);
+//             // 268 -> 230
+//             writeBits(sym, 1, buffer, i_bitOffset, offset);
+//             if (sym) {
+//                 MCGAL::Point point = points.front();
+//                 points.pop_front();
+//                 MCGAL::PointInt pi = mesh_->floatPosToInt(point);
+//                 if (isEnableQuantization) {
+//                     for (int i = 0; i < 3; i++) {
+//                         writeBits((uint32_t)pi[i], mesh_->i_nbQuantBits, buffer, i_bitOffset, offset);
+//                     }
+//                 } else {
+//                     writePoint(buffer, offset, point);
+//                 }
+//             }
+//         }
+//         // 268 -> 211
+//         while (!edgeSym.empty()) {
+//             char sym = edgeSym.front();
+//             edgeSym.pop_front();
+//             // writeChar(buffer, offset, sym);
+//             writeBits(sym, 1, buffer, i_bitOffset, offset);
+//         }
+//         offset++;
+//     }
+//     return offset;
+// }

@@ -99,7 +99,7 @@ class Facet {
     void reset_without_init(Halfedge* h);
 
     void remove(Halfedge* h);
-    MCGAL::Point computeNormal() const;
+    MCGAL::Vector3 computeNormal() const;
 
     // override
     bool equal(const Facet& rhs) const;
@@ -214,8 +214,10 @@ class Facet {
     }
 
     Point getRemovedVertexPos() const;
+    PointInt getRemovedVertexPosInt() const;
 
     void setRemovedVertexPos(Point p);
+    void setRemovedVertexPosInt(PointInt p);
 
     int facet_degree();
 
@@ -237,6 +239,7 @@ class Facet {
     int meshId_ = -1;
     MCGAL::Halfedge* proxyHalfedge_ = nullptr;
     MCGAL::Point removedVertexPos;
+    MCGAL::PointInt removedVertexPosInt;
     std::vector<Vertex*> vertices_;
     std::vector<Halfedge*> halfedges_;
     int facet_degree_ = 0;

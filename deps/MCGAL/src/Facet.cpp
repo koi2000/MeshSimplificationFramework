@@ -1,6 +1,7 @@
 #include "Facet.h"
 #include "Global.h"
 #include "Halfedge.h"
+#include "Point.h"
 #include "Vertex.h"
 #include "stdio.h"
 #include <fstream>
@@ -8,7 +9,7 @@
 
 namespace MCGAL {
 
-MCGAL::Point Facet::computeNormal() const {
+MCGAL::Vector3 Facet::computeNormal() const {
     MCGAL::Halfedge* st = proxyHalfedge_;
     MCGAL::Halfedge* ed = st;
     std::vector<MCGAL::Point> points;
@@ -16,15 +17,15 @@ MCGAL::Point Facet::computeNormal() const {
         points.push_back(st->vertex()->point());
         st = st->next();
     } while (st != ed);
-    const Point& p1 = points[0];
-    const Point& p2 = points[1];
-    const Point& p3 = points[2];
+    const Vector3& p1 = points[0];
+    const Vector3& p2 = points[1];
+    const Vector3& p3 = points[2];
     // 计算两个向量
-    Point v1 = p2 - p1;
-    Point v2 = p3 - p1;
+    Vector3 v1 = p2 - p1;
+    Vector3 v2 = p3 - p1;
 
     // 计算叉积得到法向量
-    Point normal = v1.cross(v2);
+    Vector3 normal = v1.cross(v2);
 
     // 检查法向量是否为零（三点共线）
     float len = normal.length();
@@ -33,7 +34,7 @@ MCGAL::Point Facet::computeNormal() const {
     }
 
     // 归一化法向量
-    normal.normalize();
+    // normal.normalize();
 
     return normal;
 }
@@ -237,8 +238,16 @@ Point Facet::getRemovedVertexPos() const {
     return removedVertexPos;
 };
 
+PointInt Facet::getRemovedVertexPosInt() const {
+    return removedVertexPosInt;
+};
+
 void Facet::setRemovedVertexPos(Point p) {
     removedVertexPos = p;
+};
+
+void Facet::setRemovedVertexPosInt(PointInt p) {
+    removedVertexPosInt = p;
 };
 
 int Facet::facet_degree() {

@@ -35,7 +35,7 @@ int main() {
 
     CompressOptions coptions = CompressOptions::Builder()
                                    .setSelect(selectOp)
-                                   .setRound(15)
+                                   .setRound(30)
                                    .setEliminate(eliminateOp)
                                    .setEnableCompress(true)
                                    .setEnablePrediction(true)

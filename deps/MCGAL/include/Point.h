@@ -229,6 +229,12 @@ class PointInt {
 // 定义向量类
 class Vector3 : public Point {
   public:
+    Vector3() {
+        v[0] = 0;
+        v[1] = 0;
+        v[2] = 0;
+    }
+
     Vector3(double x, double y, double z) {
         v[0] = x;
         v[1] = y;
@@ -258,6 +264,76 @@ class Vector3 : public Point {
     // 向量点积
     double dot(const Vector3& v) const {
         return x() * v.x() + y() * v.y() + z() * v.z();
+    }
+
+    Vector3 operator%(const Vector3& v) const {
+        return Vector3(y() * v.z() - z() * v.y(), z() * v.x() - x() * v.z(), x() * v.y() - y() * v.x());
+    }
+
+    double operator|(const Vector3& v) const {
+        return x() * v.x() + y() * v.y() + z() * v.z();
+    }
+
+    Vector3 operator*(double scalar) {
+        return Vector3(v[0] * scalar, v[1] * scalar, v[2] * scalar);
+    }
+
+    Vector3 normalize() {
+        float len = length();
+        if (len == 0) {
+            throw std::runtime_error("Cannot normalize a zero vector");
+        }
+        return Vector3(v[0] / len, v[1] / len, v[2] / len);
+    }
+
+    float& operator[](int index) {
+        if (index >= 0 && index < 3) {
+            return v[index];
+        } else {
+            throw std::out_of_range("Index out of range");
+        }
+    }
+};
+
+class Vector3i : public PointInt {
+  public:
+    Vector3i(int x, int y, int z) {
+        v[0] = x;
+        v[1] = y;
+        v[2] = z;
+    }
+
+    Vector3i(PointInt p) {
+        v[0] = p.x();
+        v[1] = p.y();
+        v[2] = p.z();
+    }
+
+    // 向量减法
+    Vector3i operator-(const PointInt& p) const {
+        return Vector3i(v[0] - p.x(), v[1] - p.y(), v[2] - p.z());
+    }
+
+    Vector3i operator+(const PointInt& p) const {
+        return Vector3i(v[0] + p.x(), v[1] + p.y(), v[2] + p.z());
+    }
+
+    // 向量叉积
+    Vector3i cross(const Vector3i& v) const {
+        return Vector3i(y() * v.z() - z() * v.y(), z() * v.x() - x() * v.z(), x() * v.y() - y() * v.x());
+    }
+
+    // 向量点积
+    double dot(const Vector3i& v) const {
+        return x() * v.x() + y() * v.y() + z() * v.z();
+    }
+
+    int& operator[](int index) {
+        if (index >= 0 && index < 3) {
+            return v[index];
+        } else {
+            throw std::out_of_range("Index out of range");
+        }
     }
 };
 

@@ -2,6 +2,7 @@
 #define MESH_UTILS_H
 
 #include "BufferUtils.h"
+#include "Matrix.h"
 #include "Mesh.h"
 #include "Point.h"
 #include "Vertex.h"
@@ -253,7 +254,7 @@ static std::shared_ptr<MCGAL::Mesh> readBaseMeshWithQuantization(int meshId, cha
     }
     i_bitOffset = 0;
     dataOffset++;
-    
+
     char connBit = readChar(buffer, dataOffset);
     // uint32_t ddd = readBits(connBit, buffer, i_bitOffset, --dataOffset);
     for (unsigned i = 0; i < i_nbFacesBaseMesh; ++i) {
@@ -306,6 +307,199 @@ static Halfedge* join_face(Halfedge* h) {
         hprev->face()->reset_without_init(hprev);
     }
     return hprev;
+}
+
+static MCGAL::Vector3 calculateFaceNormal(const MCGAL::Facet* face) {
+    MCGAL::Vector3 normal = face->computeNormal();
+    return normal;
+}
+
+// Matrix product.
+static Matrix matProd(Matrix const& m, Matrix const& n) {
+    float mT[3][3];
+    mT[0][0] = m.r0()[0];
+    mT[0][1] = m.r0()[1];
+    mT[0][2] = m.r0()[2];
+    mT[1][0] = m.r1()[0];
+    mT[1][1] = m.r1()[1];
+    mT[1][2] = m.r1()[2];
+    mT[2][0] = m.r2()[0];
+    mT[2][1] = m.r2()[1];
+    mT[2][2] = m.r2()[2];
+
+    float nT[3][3];
+    nT[0][0] = n.r0()[0];
+    nT[0][1] = n.r0()[1];
+    nT[0][2] = n.r0()[2];
+    nT[1][0] = n.r1()[0];
+    nT[1][1] = n.r1()[1];
+    nT[1][2] = n.r1()[2];
+    nT[2][0] = n.r2()[0];
+    nT[2][1] = n.r2()[1];
+    nT[2][2] = n.r2()[2];
+
+    float C[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++)
+                C[i][j] += mT[i][k] * nT[k][j];
+        }
+    }
+
+    return Matrix(C[0][0], C[0][1], C[0][2], C[1][0], C[1][1], C[1][2], C[2][0], C[2][1], C[2][2]);
+}
+
+static inline int signe(const float x) {
+    return (x < 0) ? -1 : 1;
+}
+
+// Description : To find a bijection through a rotation transformation in 3D with only integer coordinates.
+static std::vector<Matrix> compRotationMat(Vector3& T1, Vector3& T2, Vector3& normal) {
+    Matrix rotMat(T1[0], T2[0], normal[0], T1[1], T2[1], normal[1], T1[2], T2[2], normal[2]);
+    Matrix M = rotMat;
+
+    Matrix D1(1, 0, 0, 0, 1, 0, 0, 0, 1);
+    Matrix D2(0, 1, 0, 1, 0, 0, 0, 0, 1);
+    Matrix D3(-1, 0, 0, 0, -1, 0, 0, 0, 1);
+    Matrix D4(1, 0, 0, 0, 0, 1, 0, 1, 0);
+    Matrix D5(1, 0, 0, 0, -1, 0, 0, 0, -1);
+
+    std::vector<Matrix> S(15);
+
+    // Verify in order to find the smallest rotation angle.
+    if (abs((int)M.r0()[2]) > abs((int)M.r1()[2]))
+        S[0] = D2;
+    else
+        S[0] = D1;
+
+    M = matProd(S[0], M);
+
+    if (M.r1()[2] < 0)
+        S[1] = D3;
+    else
+        S[1] = D1;
+
+    M = matProd(S[1], M);
+
+    // Determine first rotation angle phi.
+    float len = (M.r0()[2] * M.r0()[2]) + (M.r1()[2] * M.r1()[2]);
+    float phi = len == 0 ? 0 : signe(-1 * M.r0()[2]) * acos((float)(M.r1()[2] / sqrt(len)));
+
+    S[2] = Matrix(1, -tan(phi / 2), 0, 0, 1, 0, 0, 0, 1);
+    S[3] = Matrix(1, 0, 0, sin(phi), 1, 0, 0, 0, 1);
+    S[4] = S[2];
+
+    Matrix R1inv(cos(phi), sin(phi), 0, -sin(phi), cos(phi), 0, 0, 0, 1);
+
+    M = matProd(R1inv, M);
+
+    if (abs((int)M.r1()[2]) > abs((int)M.r2()[2]))
+        S[5] = D4;
+    else
+        S[5] = D1;
+
+    M = matProd(S[5], M);
+
+    if (M.r2()[2] < 0)
+        S[6] = D5;
+    else
+        S[6] = D1;
+
+    M = matProd(S[6], M);
+
+    // Determine second rotation angle psi.
+    len = (M.r1()[2] * M.r1()[2]) + (M.r2()[2] * M.r2()[2]);
+    float psi = len == 0 ? 0 : signe(-1 * M.r1()[2]) * acos((float)(M.r2()[2] / sqrt(len)));
+
+    S[7] = Matrix(1, 0, 0, 0, 1, -tan(psi / 2), 0, 0, 1);
+    S[8] = Matrix(1, 0, 0, 0, 1, 0, 0, sin(psi), 1);
+    S[9] = S[7];
+
+    Matrix R2inv(1, 0, 0, 0, cos(psi), sin(psi), 0, -sin(psi), cos(psi));
+
+    M = matProd(R2inv, M);
+
+    if (abs((int)M.r0()[1]) > abs((int)M.r1()[1]))
+        S[10] = D2;
+    else
+        S[10] = D1;
+
+    M = matProd(S[10], M);
+
+    if (M.r1()[1] < 0)
+        S[11] = D3;
+    else
+        S[11] = D1;
+
+    M = matProd(S[11], M);
+
+    // Determine last rotation angle theta.
+    len = (M.r0()[1] * M.r0()[1]) + (M.r1()[1] * M.r1()[1]);
+    float theta = len == 0 ? 0 : signe(-1 * M.r0()[1]) * acos((float)(M.r1()[1] / sqrt(len)));
+
+    S[12] = Matrix(1, -tan(theta / 2), 0, 0, 1, 0, 0, 0, 1);
+    S[13] = Matrix(1, 0, 0, sin(theta), 1, 0, 0, 0, 1);
+    S[14] = S[12];
+
+    return S;
+}
+
+static void determineFrenetFrame(MCGAL::Vector3 v1, const MCGAL::Vector3 v2, MCGAL::Vector3& normal, MCGAL::Vector3& t1, MCGAL::Vector3& t2) {
+    MCGAL::Vector3 gateVector = v1 - v2;
+    // Determine t1.
+    t1 = gateVector - normal * (gateVector | normal);
+    float f_t1Length = sqrt(t1 | t1);
+    if (f_t1Length != 0)
+        t1 = t1 / f_t1Length;
+
+    // Determine t2;
+    t2 = normal % t1;
+}
+
+static Vector3i frenetRotation(Vector3i& Dist, Vector3& T1, Vector3& T2, Vector3& normal) {
+    std::vector<Matrix> S = compRotationMat(T1, T2, normal);
+
+    Vector3 u(Dist[0], Dist[1], Dist[2]);
+    Matrix m_inter;
+
+    // Procedure of the bijection.
+    for (int i = 0; i < 15; i++) {
+        if (i == 0 || i == 1 || i == 5 || i == 6 || i == 10 || i == 11)
+            m_inter = S[i];
+        else
+            m_inter = Matrix(S[i].r0()[0], -S[i].r0()[1], -S[i].r0()[2], -S[i].r1()[0], S[i].r1()[1], -S[i].r1()[2], -S[i].r2()[0], -S[i].r2()[1],
+                             S[i].r2()[2]);
+        u = m_inter * u;
+
+        int x = round(u[0]);
+        int y = round(u[1]);
+        int z = round(u[2]);
+
+        u = Vector3(x, y, z);
+    }
+
+    return Vector3i(u[0], u[1], u[2]);
+}
+
+static Vector3i invFrenetRotation(Vector3i& Frenet, Vector3& T1, Vector3& T2, Vector3& normal) {
+    std::vector<Matrix> S = compRotationMat(T1, T2, normal);
+
+    Vector3 u(Frenet[0], Frenet[1], Frenet[2]);
+    Matrix m_inter;
+
+    for (int i = 14; i > -1; i--) {
+        m_inter = S[i];
+        u = m_inter * u;
+
+        int x = round(u[0]);
+        int y = round(u[1]);
+        int z = round(u[2]);
+
+        u = Vector3(x, y, z);
+    }
+
+    return Vector3i(u[0], u[1], u[2]);
 }
 
 }  // namespace MCGAL
