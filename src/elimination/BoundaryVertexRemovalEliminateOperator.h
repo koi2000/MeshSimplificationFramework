@@ -1,7 +1,7 @@
 /*
  * @Author: koi
- * @Date: 2025-08-26 22:18:50
- * @Description:
+ * @Date: 2025-09-25 15:45:34
+ * @Description: 
  */
 
 #pragma once
@@ -9,10 +9,10 @@
 #include "EliminateOperator.h"
 #include "Halfedge.h"
 
-class VertexRemovalEliminateOperator : public EliminateOperator {
+class BoundaryVertexRemovalEliminateOperator : public EliminateOperator {
   public:
-    VertexRemovalEliminateOperator() = default;
-    ~VertexRemovalEliminateOperator() = default;
+  BoundaryVertexRemovalEliminateOperator() = default;
+    ~BoundaryVertexRemovalEliminateOperator() = default;
 
     void init(std::shared_ptr<MCGAL::Mesh> mesh, bool compress_boundary = false) override;
 

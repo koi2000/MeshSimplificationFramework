@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "BFSVersionManager.h"
 #include "Facet.h"
 #include "Global.h"
 #include "Halfedge.h"
@@ -9,12 +10,13 @@
 #include "string.h"
 #include <array>
 #include <assert.h>
+#include <deque>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 namespace MCGAL {
 
-// #define COLOR
+#define COLOR
 
 constexpr std::array<std::array<int, 3>, 68> colors = {{
     // {0, 0, 0},        // Black
@@ -1261,6 +1263,31 @@ void Mesh::submesh_dumpto_oldtype(std::string path, int groupId) {
         offFile << "\n";
     }
     offFile.close();
+}
+
+void Mesh::markGroupId(MCGAL::Halfedge* seed, int groupId) {
+    std::deque<int> gateQueue;
+    gateQueue.push_back(seed->face()->poolId());
+    int current_version = MCGAL::BfsVersionMananger::current_version++;
+    while (!gateQueue.empty()) {
+        int fid = gateQueue.front();
+        gateQueue.pop_front();
+        Facet* f = MCGAL::contextPool.getFacetByIndexInSubPool(meshId_, fid);
+        if (f->isVisited(current_version)) {
+            continue;
+        }
+        f->setVisited(current_version);
+        f->setGroupId(groupId);
+        MCGAL::Halfedge* st = f->proxyHalfedge();
+        MCGAL::Halfedge* ed = f->proxyHalfedge();
+        do {
+            MCGAL::Halfedge* hOpp = st->opposite();
+            if (!hOpp->face()->isVisited(current_version) && !st->isBoundary() && !st->opposite()->isBoundary()) {
+                gateQueue.push_back(hOpp->face()->poolId());
+            }
+            st = st->next();
+        } while (st != ed);
+    }
 }
 
 void Mesh::dumpto_oldtype(std::string path) {

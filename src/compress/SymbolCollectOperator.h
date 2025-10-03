@@ -21,6 +21,7 @@ class SymbolCollectOperator {
     virtual void init(std::shared_ptr<MCGAL::Mesh> mesh) = 0;
     // 收集一轮的信息
     virtual void collect(MCGAL::Halfedge* h) = 0;
+    virtual void collect(std::vector<MCGAL::Halfedge*> hs) {};
     // 将收集到的信息导出到buffer中
     virtual int exportToBuffer(char* buffer, bool enableQuantization = false) = 0;
 

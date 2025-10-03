@@ -51,7 +51,7 @@ class Point {
     }
 
     Point operator/(const int div) const {
-        return Point(v[0] / 2, v[1] / 2, v[2] / 2);
+        return Point(v[0] / div, v[1] / div, v[2] / div);
     }
 
     float& operator[](int index) {

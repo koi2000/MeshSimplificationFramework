@@ -19,8 +19,8 @@ class EliminateOperator {
   public:
     EliminateOperator() = default;
 
-    virtual void init(std::shared_ptr<MCGAL::Mesh> mesh) = 0;
-    
+    virtual void init(std::shared_ptr<MCGAL::Mesh> mesh, bool compress_boundary = false) = 0;
+
     virtual ~EliminateOperator() = default;
 
     virtual bool eliminate(MCGAL::Halfedge* h) = 0;
@@ -31,9 +31,10 @@ class EliminateOperator {
 
     virtual bool postprocess(MCGAL::Halfedge* h) = 0;
 
-    virtual bool encode_boundary(MCGAL::Halfedge* h) = 0;
+    virtual MCGAL::Halfedge* encode_boundary(MCGAL::Halfedge* h) = 0;
 
     std::shared_ptr<MCGAL::Mesh> mesh_;
+    bool compress_boundary_ = false;
 };
 
 #endif

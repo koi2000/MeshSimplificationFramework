@@ -7,6 +7,7 @@
 #include "BasicSerializeOperator.h"
 #include "../common/BufferUtils.h"
 #include "../common/EntropyCodec.h"
+#include "Halfedge.h"
 #include "Point.h"
 #include <cstddef>
 #include <cstdint>
@@ -23,7 +24,7 @@ void BasicSerializeOperator::serializeInt(int val) {
 
 void BasicSerializeOperator::serializeBaseMesh(std::shared_ptr<MCGAL::Mesh> mesh) {}
 
-void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed) {
+void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, std::vector<MCGAL::Halfedge*> seeds) {
     mesh->garbage_collection();
     unsigned i_nbVerticesBaseMesh = mesh->size_of_vertices();
     unsigned i_nbFacesBaseMesh = mesh->size_of_facets();
@@ -38,6 +39,7 @@ void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Me
     writeInt(buffer_, dataOffset_, i_nbFacesBaseMesh);
     int id = 0;
     unsigned i_bitOffset = 0;
+    MCGAL::Halfedge* seed = seeds[0];
     seed->vertex()->setVid(id++);
     seed->end_vertex()->setVid(id++);
     if (enableQuantization_) {

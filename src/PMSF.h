@@ -19,6 +19,8 @@ class PMSF {
 
     void compress(CompressOptions& options);
 
+    void segmentCompress(CompressOptions& options);
+
     void decompress(DecompressOptions& options);
 
     void RegisterProperties();

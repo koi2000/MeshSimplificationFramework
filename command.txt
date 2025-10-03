@@ -3,3 +3,9 @@
 // sudo update-alternatives --install /usr/bin/gcc gcc /usr/local/gcc-12/bin/gcc 71
 
 bear make -j32
+
+cloc . --exclude-dir=build,third_party,.git,openmesh --include-lang=C++,C/C++\ Header
+
+find . \( -name "build" -o -name "openmesh" -o -name ".git" \) -prune -o \
+    \( -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" -o -name "*.h" -o -name "*.hpp" \) -type f -print0 | \
+    xargs -0 wc -l

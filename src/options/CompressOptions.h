@@ -11,6 +11,7 @@
 #include "../selection/SelectOperator.h"
 #include <memory>
 #include <string>
+#include "../segmentation/SegmentationOption.h"
 
 class CompressOptions {
   public:
@@ -54,6 +55,14 @@ class CompressOptions {
             enableQuantization_ = enable;
             return *this;
         }
+        Builder& setEnableSegmentation(bool enable) {
+            enableSegmentation_ = enable;
+            return *this;
+        }
+        Builder& setSegmentationOption(const SegmentationOption& seg) {
+            segmentation_ = seg;
+            return *this;
+        }
         CompressOptions build() {
             CompressOptions options;
             options.round = round_;
@@ -64,6 +73,8 @@ class CompressOptions {
             options.enableCompress = enableCompress_;
             options.enablePrediction = enablePrediction_;
             options.enableQuantization = enableQuantization_;
+            options.enableSegmentation = enableSegmentation_;
+            options.segmentation = segmentation_;
             return options;
         }
 
@@ -74,6 +85,8 @@ class CompressOptions {
         bool enableCompress_;
         bool enablePrediction_;
         bool enableQuantization_;
+        bool enableSegmentation_;
+        SegmentationOption segmentation_;
         std::shared_ptr<SelectOperator> select_;
         std::shared_ptr<EliminateOperator> eliminate_;
     };
@@ -103,17 +116,25 @@ class CompressOptions {
     bool isEnableQuantization() const {
         return enableQuantization;
     }
+    bool isEnableSegmentation() const {
+        return enableSegmentation;
+    }
+    
+    const SegmentationOption& getSegmentationOption() const { return segmentation; }
+    void setSegmentationOption(const SegmentationOption& s) { segmentation = s; }
 
   private:
     bool enableCompress = false;
     bool enablePrediction = false;
     bool enableQuantization = false;
+    bool enableSegmentation = false;
 
     std::string path;
     std::string outputPath;
     int round = 0;
     std::shared_ptr<SelectOperator> select;
     std::shared_ptr<EliminateOperator> eliminate;
+    SegmentationOption segmentation;
 };
 
 #endif

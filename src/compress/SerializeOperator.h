@@ -11,6 +11,7 @@
 #include "compress/SymbolCollectOperator.h"
 #include <memory>
 #include <string>
+#include "segmentation/SegmentationOption.h"
 
 /**
  * @brief 序列化操作符
@@ -30,13 +31,17 @@ class SerializeOperator {
 
     virtual void serializeBaseMesh(std::shared_ptr<MCGAL::Mesh> mesh) = 0;
 
-    virtual void serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed) = 0;
+    virtual void serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, std::vector<MCGAL::Halfedge*> seed) = 0;
+    
+    void setSegmentationOption(const SegmentationOption& s) { segmentation_ = s; }
+    const SegmentationOption& getSegmentationOption() const { return segmentation_; }
 
     // virtual void serializeCharPointer(char* val, int size) = 0;
 
     bool enablePrediction_;
     bool enableCompress_;
     bool enableQuantization_;
+    SegmentationOption segmentation_;
     std::shared_ptr<SymbolCollectOperator> collector_;
     char* buffer_;
     int dataOffset_ = 0;
