@@ -110,25 +110,25 @@ static bool IsFlipped(MCGAL::Halfedge* edge, const MCGAL::Point& ptTarget) {
     return false;
 }
 
-static MCGAL::Halfedge* next_boundary(int ogroupId, MCGAL::Halfedge* boundary) {
-    MCGAL::Halfedge* nxt = boundary->next();
-    if (nxt->isBoundary()) {
-        return nxt;
-    }
-    nxt = boundary->next()->opposite()->next();
-    if (nxt->isBoundary()) {
-        return nxt;
-    }
-    for (MCGAL::Halfedge* hit : boundary->end_vertex()->halfedges()) {
-        if (hit->opposite() != boundary && hit->isBoundary() && hit->opposite()->face()->groupId() == ogroupId) {
-            return hit;
-        }
-        // if (hit->face()->groupId() != ogroupId && hit->opposite()->face()->groupId() == ogroupId) {
-        //     return hit;
-        // }
-    }
-    return nullptr;
-}
+// static MCGAL::Halfedge* next_boundary(int ogroupId, MCGAL::Halfedge* boundary) {
+//     MCGAL::Halfedge* nxt = boundary->next();
+//     if (nxt->isBoundary()) {
+//         return nxt;
+//     }
+//     nxt = boundary->next()->opposite()->next();
+//     if (nxt->isBoundary()) {
+//         return nxt;
+//     }
+//     for (MCGAL::Halfedge* hit : boundary->end_vertex()->halfedges()) {
+//         if (hit->opposite() != boundary && hit->isBoundary() && hit->opposite()->face()->groupId() == ogroupId) {
+//             return hit;
+//         }
+//         // if (hit->face()->groupId() != ogroupId && hit->opposite()->face()->groupId() == ogroupId) {
+//         //     return hit;
+//         // }
+//     }
+//     return nullptr;
+// }
 
 static Halfedge* find_prev(Halfedge* h) {
     Halfedge* g = h;
@@ -167,10 +167,10 @@ static std::shared_ptr<MCGAL::Mesh> buildFromBuffer(int meshId, std::deque<MCGAL
     }
     for (int i = 0; i < p_faceDeque->size(); ++i) {
         uint32_t* ptr = p_faceDeque->at(i);
-        int num_face_vertices = ptr[0];
+        int num_face_vertices = 3;
         std::vector<MCGAL::Vertex*> vts;
         for (int j = 0; j < num_face_vertices; ++j) {
-            int vertex_index = ptr[j + 1];
+            int vertex_index = ptr[j];
             vts.push_back(vertices[vertex_index]);
         }
         MCGAL::Facet* face = MCGAL::contextPool.allocateFaceFromPool(meshId, vts);
@@ -191,10 +191,11 @@ static std::shared_ptr<MCGAL::Mesh> readBaseMesh(int meshId, char* buffer, int& 
         p_pointDeque->push_back(pos);
     }
     for (unsigned i = 0; i < i_nbFacesBaseMesh; ++i) {
-        int nv = readInt(buffer, dataOffset);
-        uint32_t* f = new uint32_t[nv + 1];
-        f[0] = nv;
-        for (unsigned j = 1; j < nv + 1; ++j) {
+        // int nv = readInt(buffer, dataOffset);
+        int nv = 3;
+        uint32_t* f = new uint32_t[nv];
+        // f[0] = nv;
+        for (unsigned j = 0; j < nv; ++j) {
             f[j] = readInt(buffer, dataOffset);
         }
         p_faceDeque->push_back(f);
@@ -207,6 +208,13 @@ static std::shared_ptr<MCGAL::Mesh> readBaseMesh(int meshId, char* buffer, int& 
     delete p_faceDeque;
     delete p_pointDeque;
     return mesh;
+}
+
+static std::vector<int> charPtrToVectorInt(char* data, int& dataOffset, int size) {
+    std::vector<int> result(size);
+    std::memcpy(result.data(), data + dataOffset, size * sizeof(int));
+    dataOffset += size * sizeof(int);
+    return result;
 }
 
 static PointInt floatPosToInt(Point p, MCGAL::Point bboxMin, int f_quantStep) {
@@ -500,6 +508,57 @@ static Vector3i invFrenetRotation(Vector3i& Frenet, Vector3& T1, Vector3& T2, Ve
     }
 
     return Vector3i(u[0], u[1], u[2]);
+}
+
+static MCGAL::Halfedge* next_boundary(int ogroupId, MCGAL::Halfedge* boundary) {
+    MCGAL::Halfedge* nxt = boundary->next();
+    if (nxt->isBoundary()) {
+        return nxt;
+    }
+    nxt = boundary->next()->opposite()->next();
+    if (nxt->isBoundary()) {
+        return nxt;
+    }
+    for (MCGAL::Halfedge* hit : boundary->end_vertex()->halfedges()) {
+        if (hit->opposite() != boundary && hit->isBoundary()) {
+            return hit;
+        }
+    }
+    return nullptr;
+}
+
+static MCGAL::Halfedge* next_boundary(int inner, int outer, MCGAL::Halfedge* boundary) {
+    MCGAL::Halfedge* nxt = boundary->next();
+    if (nxt->isBoundary()) {
+        if (nxt->face()->groupId() == inner && nxt->opposite()->face()->groupId() == outer) {
+            return nxt;
+        }
+    }
+    nxt = boundary->next()->opposite()->next();
+    if (nxt->isBoundary()) {
+        if (nxt->face()->groupId() == inner && nxt->opposite()->face()->groupId() == outer) {
+            return nxt;
+        }
+    }
+    for (MCGAL::Halfedge* hit : boundary->end_vertex()->halfedges()) {
+        if (hit->opposite()->isBoundary() && hit->isBoundary() && hit->face()->groupId() == inner && hit->opposite()->face()->groupId() == outer) {
+            return hit;
+        }
+    }
+    return nullptr;
+}
+
+static bool isPointInTriangle(const MCGAL::Point& A, const MCGAL::Point& B, const MCGAL::Point& C, const MCGAL::Point& P) {
+    // 计算三个向量叉积
+    MCGAL::Vector3 cross1 = crossProduct(A, B, P);
+    MCGAL::Vector3 cross2 = crossProduct(B, C, P);
+    MCGAL::Vector3 cross3 = crossProduct(C, A, P);
+
+    // 检查是否所有叉积的z分量符号相同
+    bool hasNeg = (cross1.z() < 0) || (cross2.z() < 0) || (cross3.z() < 0);
+    bool hasPos = (cross1.z() > 0) || (cross2.z() > 0) || (cross3.z() > 0);
+
+    return !(hasNeg && hasPos);  // 如果叉积符号不一致，返回false
 }
 
 }  // namespace MCGAL

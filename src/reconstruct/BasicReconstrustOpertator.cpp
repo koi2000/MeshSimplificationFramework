@@ -10,7 +10,7 @@
 
 void BasicReconstructOpertator::reconstruct(MCGAL::Halfedge* halfedge) {}
 
-void BasicReconstructOpertator::reconstruct(std::vector<MCGAL::Vertex*> vertices,
+void BasicReconstructOpertator::reconstruct(std::vector<MCGAL::Vertex*>& vertices,
                                             std::vector<MCGAL::Halfedge*>& halfedge,
                                             std::vector<MCGAL::Facet*>& facets) {
     int count = 0;

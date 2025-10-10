@@ -7,6 +7,9 @@
 
 需要完成的内容
 
+先定下来接下来要做的事情，第一个调试好现有的collector，第二个，写一个segmentbased的collector
+第三个，复现一篇论文。
+
 ## selection
 
 可以统一化为一个优先级队列，当不需要带error的时候就退化为队列

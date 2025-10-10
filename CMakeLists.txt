@@ -36,6 +36,7 @@ include_directories(
 function(collect_source_files DIRECTORY_NAME)
     file(GLOB_RECURSE ${DIRECTORY_NAME}_SOURCES
         "src/${DIRECTORY_NAME}/*.h"
+        "src/${DIRECTORY_NAME}/*.c"
         "src/${DIRECTORY_NAME}/*.cpp"
     )
     set(${DIRECTORY_NAME}_SOURCES ${${DIRECTORY_NAME}_SOURCES} PARENT_SCOPE)
@@ -55,6 +56,8 @@ collect_source_files(options)
 collect_source_files(reconstruct)
 collect_source_files(segmentation)
 collect_source_files(selection)
+collect_source_files(rangecoder)
+collect_source_files(boundary)
 
 # 收集框架核心文件
 file(GLOB_RECURSE FRAMEWORK
@@ -77,9 +80,19 @@ set(ALL_SOURCES
     ${reconstruct_SOURCES}
     ${segmentation_SOURCES}
     ${selection_SOURCES}
+    ${rangecoder_SOURCES}
+    ${boundary_SOURCES}
 )
 
 find_package(ZLIB REQUIRED)
+
+add_executable(DefaultSegmentCompress tools/DefaultSegmentCompress.cpp ${ALL_SOURCES})
+target_include_directories(DefaultSegmentCompress PUBLIC "src" )
+target_link_libraries(DefaultSegmentCompress MCGAL_static ZLIB::ZLIB)
+
+add_executable(DefaultSegmentDecompress tools/DefaultSegmentDecompress.cpp ${ALL_SOURCES})
+target_include_directories(DefaultSegmentDecompress PUBLIC "src" )
+target_link_libraries(DefaultSegmentDecompress MCGAL_static ZLIB::ZLIB)
 
 add_executable(DefaultCompress tools/DefaultCompress.cpp ${ALL_SOURCES})
 target_include_directories(DefaultCompress PUBLIC "src" )

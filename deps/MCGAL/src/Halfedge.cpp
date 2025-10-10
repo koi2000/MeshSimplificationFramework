@@ -72,7 +72,7 @@ Halfedge* Halfedge::find_prev() {
     return g;
 }
 
-Halfedge* Halfedge::next_boundary(int ogroupId) {
+Halfedge* Halfedge::next_boundary() {
     MCGAL::Halfedge* boundary = this;
     MCGAL::Halfedge* nxt = boundary->next();
     if (nxt->isBoundary()) {

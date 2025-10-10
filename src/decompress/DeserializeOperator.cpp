@@ -23,7 +23,7 @@ void DeserializeOperator::readBuffer(std::string path) {
     int len2;
     fin.read((char*)&len2, sizeof(int));
 
-    bool enableCompress = true;
+    bool enableCompress = false;
     if (enableCompress) {
         std::unique_ptr<char[]> temp(new char[len2]);
         fin.read(temp.get(), len2);

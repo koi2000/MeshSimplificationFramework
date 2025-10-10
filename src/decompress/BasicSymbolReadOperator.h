@@ -17,11 +17,18 @@ class BasicSymbolReadOperator : public SymbolReadOperator {
     BasicSymbolReadOperator() = default;
 
     void collect(MCGAL::Halfedge* seed,
-                         char* buffer,
-                         int& dataOffset,
-                         std::vector<MCGAL::Vertex*>& vertices,
-                         std::vector<MCGAL::Halfedge*>& halfedge,
-                         std::vector<MCGAL::Facet*>& facets);
+                 char* buffer,
+                 int& dataOffset,
+                 std::vector<MCGAL::Vertex*>& vertices,
+                 std::vector<MCGAL::Halfedge*>& halfedge,
+                 std::vector<MCGAL::Facet*>& facets);
+
+    void collect(std::vector<MCGAL::Halfedge*> seeds,
+                 char* buffer,
+                 int& dataOffset,
+                 std::vector<MCGAL::Vertex*>& vertices,
+                 std::vector<MCGAL::Halfedge*>& halfedge,
+                 std::vector<MCGAL::Facet*>& facets);
 
   private:
     // void collectHalfedgeSymbol(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed);

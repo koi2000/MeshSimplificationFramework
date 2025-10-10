@@ -204,7 +204,7 @@ class Facet {
     }
 
     inline void setSplittable() {
-        assert(splittableFlag_ == Unknown);
+        // assert(splittableFlag_ == Unknown);
         splittableFlag_ = Splittable;
     }
 

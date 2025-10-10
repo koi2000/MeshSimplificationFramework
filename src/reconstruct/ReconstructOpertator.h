@@ -25,7 +25,7 @@ class ReconstructOperator {
 
     virtual void reconstruct(MCGAL::Halfedge* halfedge) = 0;
 
-    virtual void reconstruct(std::vector<MCGAL::Vertex*> vertices, std::vector<MCGAL::Halfedge*>& halfedge, std::vector<MCGAL::Facet*>& facets) = 0;
+    virtual void reconstruct(std::vector<MCGAL::Vertex*>& vertices, std::vector<MCGAL::Halfedge*>& halfedge, std::vector<MCGAL::Facet*>& facets) = 0;
 
     std::shared_ptr<MCGAL::Mesh> mesh_;
 };

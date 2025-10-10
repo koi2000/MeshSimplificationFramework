@@ -176,7 +176,7 @@ class Vertex : public Point {
     }
 
   private:
-    int vid_ = 0;
+    int vid_ = -1;
     int poolId_ = -1;
     int meshId_ = -1;
     int groupId_ = -1;

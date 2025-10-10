@@ -8,24 +8,29 @@
 #include "Global.h"
 #include "Halfedge.h"
 #include "Mesh.h"
+#include "MeshUtils.h"
 #include "Point.h"
 #include "Vertex.h"
 #include "common/Define.h"
+#include <cstddef>
 #include <vector>
-#include "MeshUtils.h"
 
-void VertexRemovalEliminateOperator::init(std::shared_ptr<MCGAL::Mesh> mesh) {
+void VertexRemovalEliminateOperator::init(std::shared_ptr<MCGAL::Mesh> mesh, bool compress_boundary) {
     mesh_ = mesh;
+    compress_boundary_ = compress_boundary;
 }
 
 bool VertexRemovalEliminateOperator::eliminate(MCGAL::Halfedge* h) {
     if (h == nullptr)
         return false;
-
+    // if (compress_boundary_ && h->isBoundary()) {
+    //     CHECK_TRUE(encode_boundary(h));
+    //     return true;
+    // }
     CHECK_TRUE(remove_point(h));
     CHECK_TRUE(triangulate(h));
     CHECK_TRUE(postprocess(h));
-    CHECK_TRUE(encode_boundary(h));
+    // CHECK_TRUE(encode_boundary(h));
     return true;
 }
 
@@ -67,14 +72,16 @@ bool VertexRemovalEliminateOperator::remove_point(MCGAL::Halfedge* h) {
         // Vec3i toEncode = vrPos;
     }
 
-    hface->face()->setRemovedVertexPos(h->end_vertex()->point() - h->vertex()->point());
-    // hface->face()->setRemovedVertexPos(h->end_vertex()->point());
+    // hface->face()->setRemovedVertexPos(h->end_vertex()->point() - h->vertex()->point());
+    h->setFace(hface->face());
+    hface->face()->setRemovedVertexPos(h->end_vertex()->point());
     return true;
 }
 
 bool VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
     if (!h)
         return false;
+    int groupId = h->face()->groupId();
     MCGAL::Facet* polyFace = h->face();
     // if (!polyFace || polyFace->isRemoved())
     //     return false;
@@ -112,6 +119,7 @@ bool VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
             h1->setNext(hnew);
             hnew->setNext(h0);
             MCGAL::Facet* newFace = MCGAL::contextPool.allocateFaceFromPool(mesh_->meshId(), h0);
+            newFace->setGroupId(groupId);
             mesh_->add_face(newFace);
         } else {
             MCGAL::Vertex* v0 = polyVerts[0];
@@ -126,6 +134,7 @@ bool VertexRemovalEliminateOperator::triangulate(MCGAL::Halfedge* h) {
             h1->setNext(h2);
             h2->setNext(h0);
             MCGAL::Facet* newFace = MCGAL::contextPool.allocateFaceFromPool(mesh_->meshId(), h0);
+            newFace->setGroupId(groupId);
             mesh_->add_face(newFace);
         }
     }
@@ -137,6 +146,83 @@ bool VertexRemovalEliminateOperator::postprocess(MCGAL::Halfedge* h) {
     return true;
 }
 
-bool VertexRemovalEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
-    return true;
+static void setNewGroupId(MCGAL::Facet* f) {
+    for (auto it = f->halfedges_begin(); it != f->halfedges_end(); it++) {
+        if (!(*it)->isBoundary()) {
+            f->setGroupId((*it)->face()->groupId());
+            break;
+        }
+    }
+}
+
+/**
+ * 后面需要单独验证是否正确
+ */
+// 问题：如果下下个边界在多边形上，就会导致边界出错
+MCGAL::Halfedge* VertexRemovalEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
+    // if (!compress_boundary_ || !h->isBoundary()) {
+    //     return true;
+    // }
+    MCGAL::Halfedge* boundary = h;
+    MCGAL::Halfedge* nxtBoundary = h->next_boundary();
+    MCGAL::Vertex* v1 = h->vertex();
+    MCGAL::Vertex* v2 = nxtBoundary->end_vertex();
+    int gid1 = h->face()->groupId();
+    int gid2 = h->opposite()->face()->groupId();
+    remove_point(h);
+    // 最重要的是锚定两个点，锚定住出点
+    // 如何锚定，先把中心点删除，然后找出点，记住出点和记录点不一样
+    //  
+    MCGAL::Facet* newFace = h->face();
+    MCGAL::Halfedge* newBoundary = nullptr;
+    for (MCGAL::Halfedge* hit : v1->halfedges()) {
+        if (hit->face() == newFace) {
+            newBoundary = hit;
+            break;
+        }
+    }
+    while (true) {
+        newBoundary->setBoundary();
+        if (newBoundary->end_vertex() == v2) {
+            break;
+        }
+        newBoundary = newBoundary->next();
+    }
+    MCGAL::Halfedge* st = newFace->proxyHalfedge();
+    MCGAL::Halfedge* ed = st;
+    do {
+        if(!st->isBoundary()) {
+            groupId = st->opposite()->face()->groupId();
+            break;
+        }
+        st = st->next();
+    } while (st != ed);
+    h->face()->setGroupId(groupId);
+    triangulate(h);
+    return nullptr;
+    // MCGAL::Halfedge* newBoundary = nullptr;
+    // for (MCGAL::Halfedge* hit : v1->halfedges()) {
+    //     if (hit->end_vertex() == v2) {
+    //         newBoundary = hit;
+    //         break;
+    //     }
+    // }
+    // if (newBoundary->isAdded()) {
+    //     newBoundary->setBoundary();
+    //     newBoundary->face()->setSplittable();
+    //     newBoundary->face()->setRemovedVertexPos(h->end_vertex());
+    //     newBoundary->opposite()->face()->setSplittable();
+    //     newBoundary->opposite()->face()->setRemovedVertexPos(h->end_vertex());
+    //     // setNewGroupId(newBoundary->face());
+    //     // setNewGroupId(newBoundary->opposite()->face());
+    // } else {
+    //     MCGAL::Facet* f = newBoundary->face();
+    //     for (auto it = f->halfedges_begin(); it != f->halfedges_end(); it++) {
+    //         if((*it)->face()->groupId() != (*it)->opposite()->face()->groupId()) {
+    //             (*it)->setBoundary();
+    //             (*it)->opposite()->setBoundary();
+    //         }
+    //     }
+    // }
+    // return true;
 }

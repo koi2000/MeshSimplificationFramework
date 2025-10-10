@@ -18,5 +18,5 @@ class EdgeCollapseEliminateOperator : public EliminateOperator {
     bool remove_point(MCGAL::Halfedge* h) override;
     bool triangulate(MCGAL::Halfedge* h) override;
     bool postprocess(MCGAL::Halfedge* h) override;
-    bool encode_boundary(MCGAL::Halfedge* h) override;
+    MCGAL::Halfedge* encode_boundary(MCGAL::Halfedge* h) override;
 };

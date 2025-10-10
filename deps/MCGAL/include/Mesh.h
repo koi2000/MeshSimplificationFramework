@@ -1,17 +1,17 @@
 #ifndef MESH_H
 #define MESH_H
 #include "Configuration.h"
+#include "Facet.h"
+#include "Halfedge.h"
 #include "JemallocStl.h"
+#include "Point.h"
+#include "Vertex.h"
 #include "VertexSplitNode.h"
 #include <algorithm>
 #include <climits>
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include "Vertex.h"
-#include "Halfedge.h"
-#include "Facet.h"
-#include "Point.h"
 namespace MCGAL {
 class Vector3;
 class Vertex;
@@ -44,7 +44,9 @@ class Mesh {
     void dumpto(std::string path);
     void print();
     std::string to_string();
-    Vertex* get_vertex(int vseq = 0);
+    inline Vertex* get_vertex(int vseq = 0) {
+        return vertices_[vseq];
+    };
 
     int meshId() {
         return meshId_;
@@ -64,6 +66,7 @@ class Mesh {
     Facet* add_face(Facet* face);
     void eraseFacetByPointer(Facet* facet);
     void eraseVertexByPointer(Vertex* vertex);
+    void markGroupId(MCGAL::Halfedge* seed, int groupId);
     void dumpto_oldtype(std::string path);
     void submesh_dumpto_oldtype(std::string path, int groupId);
 

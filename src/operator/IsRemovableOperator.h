@@ -13,7 +13,7 @@ class IsRemovableOperator {
   public:
     IsRemovableOperator() = default;
 
-    virtual void init(MCGAL::Vertex* v, MCGAL::Halfedge* h, MCGAL::Facet* f){};
+    virtual void init(std::vector<MCGAL::Vertex*> v, std::vector<MCGAL::Halfedge*> h, std::vector<MCGAL::Facet*> f){};
 
     virtual bool isRemovable(MCGAL::Halfedge* halfedge) = 0;
 };

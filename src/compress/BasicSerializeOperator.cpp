@@ -7,6 +7,7 @@
 #include "BasicSerializeOperator.h"
 #include "../common/BufferUtils.h"
 #include "../common/EntropyCodec.h"
+#include "Halfedge.h"
 #include "Point.h"
 #include <cstddef>
 #include <cstdint>
@@ -23,7 +24,7 @@ void BasicSerializeOperator::serializeInt(int val) {
 
 void BasicSerializeOperator::serializeBaseMesh(std::shared_ptr<MCGAL::Mesh> mesh) {}
 
-void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed) {
+void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, std::vector<MCGAL::Halfedge*> seeds) {
     mesh->garbage_collection();
     unsigned i_nbVerticesBaseMesh = mesh->size_of_vertices();
     unsigned i_nbFacesBaseMesh = mesh->size_of_facets();
@@ -38,6 +39,7 @@ void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Me
     writeInt(buffer_, dataOffset_, i_nbFacesBaseMesh);
     int id = 0;
     unsigned i_bitOffset = 0;
+    MCGAL::Halfedge* seed = seeds[0];
     seed->vertex()->setVid(id++);
     seed->end_vertex()->setVid(id++);
     if (enableQuantization_) {
@@ -77,11 +79,11 @@ void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Me
         }
         vit->setVid(id++);
     }
-    i_bitOffset = 0;
-    dataOffset_++;
-    char connBit = ceil(log2(i_nbVerticesBaseMesh + 1));
-    writeChar(buffer_, dataOffset_, connBit);
-    for (MCGAL::Facet* fit : mesh->faces()) {
+    // i_bitOffset = 0;
+    // dataOffset_++;
+    // char connBit = ceil(log2(i_nbVerticesBaseMesh + 1));
+    // writeChar(buffer_, dataOffset_, connBit);
+     for (MCGAL::Facet* fit : mesh->faces()) {
         if (fit->isRemoved()) {
             continue;
         }
@@ -96,8 +98,8 @@ void BasicSerializeOperator::serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Me
         // writeInt(buffer_, dataOffset_, i_faceDegree);
         // writeBits(i_faceDegree, 2, buffer_, i_bitOffset, dataOffset_);
         do {
-            // writeInt(buffer_, dataOffset_, st->vertex()->vid());
-            writeBits((uint32_t)st->vertex()->vid(), connBit, buffer_, i_bitOffset, dataOffset_);
+            writeInt(buffer_, dataOffset_, st->vertex()->vid());
+            // writeBits((uint32_t)st->vertex()->vid(), connBit, buffer_, i_bitOffset, dataOffset_);
             st = st->next();
         } while (st != ed);
     }

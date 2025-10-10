@@ -61,6 +61,6 @@ bool EdgeCollapseEliminateOperator::postprocess(MCGAL::Halfedge* h) {
     return true;
 }
 
-bool EdgeCollapseEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
-    return true;
+MCGAL::Halfedge* EdgeCollapseEliminateOperator::encode_boundary(MCGAL::Halfedge* h) {
+    return nullptr;
 }

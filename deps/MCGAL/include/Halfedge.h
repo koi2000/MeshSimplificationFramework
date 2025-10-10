@@ -29,7 +29,7 @@ class Halfedge {
 
     Halfedge* find_prev();
 
-    Halfedge* next_boundary(int ogroupId);
+    Halfedge* next_boundary();
 
     inline void resetBfsFlag() {
         processedFlag_ = NotProcessed;

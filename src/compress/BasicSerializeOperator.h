@@ -33,11 +33,7 @@ class BasicSerializeOperator : public SerializeOperator {
 
     void serializeBaseMesh(std::shared_ptr<MCGAL::Mesh> mesh);
 
-    void serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, MCGAL::Halfedge* seed);
-
-    // 返回一块新分配的内存块，格式: [origSize:int][compSize:int][payload]
-    // 由调用者负责 delete[] outBlock
-    // void serializeCharPointer(char* val, int size, char*& outBlock, int& outBlockSize);
+    void serializeBaseMeshWithSeed(std::shared_ptr<MCGAL::Mesh> mesh, std::vector<MCGAL::Halfedge*> seed);
 
     void serialize(std::string path);
 };

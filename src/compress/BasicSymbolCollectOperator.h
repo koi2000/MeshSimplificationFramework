@@ -9,6 +9,7 @@
 
 #include "SymbolCollectOperator.h"
 #include <memory>
+#include <vector>
 
 class BasicSymbolCollectOperator : public SymbolCollectOperator {
   public:
@@ -19,6 +20,7 @@ class BasicSymbolCollectOperator : public SymbolCollectOperator {
     };
 
     void collect(MCGAL::Halfedge* seed) override;
+    void collect(std::vector<MCGAL::Halfedge*> seed) override;
     int exportToBuffer(char* buffer, bool enableQuantization = false) override;
 
   private:

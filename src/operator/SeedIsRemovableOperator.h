@@ -15,24 +15,27 @@
 #include "Vertex.h"
 #include "operator/IsRemovableOperator.h"
 #include <cstddef>
+#include <vector>
 
 class SeedIsRemovableOperator : public IsRemovableOperator {
   public:
     SeedIsRemovableOperator() = default;
 
-    void init(MCGAL::Vertex* v, MCGAL::Halfedge* h, MCGAL::Facet* f) {
-        this->seed = h;
+    void init(std::vector<MCGAL::Vertex*> v, std::vector<MCGAL::Halfedge*> h, std::vector<MCGAL::Facet*> f) {
+        this->seeds = h;
     };
 
     bool isRemovable(MCGAL::Halfedge* halfedge) {
-        if (seed->vertex()->poolId() == halfedge->vertex()->poolId() || seed->end_vertex()->poolId() == halfedge->end_vertex()->poolId() ||
-            seed->end_vertex()->poolId() == halfedge->vertex()->poolId() || seed->vertex()->poolId() == halfedge->end_vertex()->poolId()) {
-            return false;
+        for (MCGAL::Halfedge* seed : seeds) {
+            if (seed->vertex()->poolId() == halfedge->vertex()->poolId() || seed->end_vertex()->poolId() == halfedge->end_vertex()->poolId() ||
+                seed->end_vertex()->poolId() == halfedge->vertex()->poolId() || seed->vertex()->poolId() == halfedge->end_vertex()->poolId()) {
+                return false;
+            }
         }
         return true;
     };
 
-    MCGAL::Halfedge* seed = nullptr;
+    std::vector<MCGAL::Halfedge*> seeds;
 };
 
 #endif

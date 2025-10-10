@@ -38,6 +38,72 @@
 			]
 		},
 		{
+			"name": "DefaultSegmentCompress",
+			"type": "cppdbg",
+			// "type": "cuda-gdb",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/DefaultSegmentCompress",
+			"args": [
+				"/home/koi/mastercode/Mini_CGAL/static/untitled.off"
+			],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			// "preLaunchTask": "CMake Build",
+			"setupCommands": [
+				{
+                    "description": "Test",
+                    "text": "python import sys;sys.path.insert(0, '/usr/share/gcc/python');from libstdcxx.v6.printers import register_libstdcxx_printers;register_libstdcxx_printers(None)",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+			]
+		},
+		{
+			"name": "DefaultSegmentDecompress",
+			"type": "cppdbg",
+			// "type": "cuda-gdb",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/DefaultSegmentDecompress",
+			"args": [
+				"/home/koi/mastercode/Mini_CGAL/static/untitled.off"
+			],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			// "preLaunchTask": "CMake Build",
+			"setupCommands": [
+				{
+                    "description": "Test",
+                    "text": "python import sys;sys.path.insert(0, '/usr/share/gcc/python');from libstdcxx.v6.printers import register_libstdcxx_printers;register_libstdcxx_printers(None)",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+			]
+		},
+		{
 			"name": "DefaultDecompress",
 			"type": "cppdbg",
 			// "type": "cuda-gdb",

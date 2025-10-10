@@ -3,11 +3,6 @@
  * @Date: 2025-09-01 10:29:43
  * @Description: 
  */
-/*
- * @Author: koi
- * @Date: 2025-09-01 10:04:28
- * @Description:
- */
 #ifndef BASIC_PMSF_HEADER_H
 #define BASIC_PMSF_HEADER_H
 
@@ -17,6 +12,10 @@
 
 class BasicPMSFHeader : public PMSFHeader {
     int round;
+
+    bool enableCompress = false;
+    bool enableQuantization = false;
+    bool enableSegmentation = false;
 
     void serialize(char* buffer, int& offset) {
         writeInt(buffer, offset, round);

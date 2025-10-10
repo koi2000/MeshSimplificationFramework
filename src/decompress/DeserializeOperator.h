@@ -7,6 +7,7 @@
 #define DeserializeOperator_H
 
 #include "Mesh.h"
+#include "../header/PMSFHeader.h"
 #include "decompress/SymbolReadOperator.h"
 #include "reconstruct/ReconstructOpertator.h"
 #include <memory>
@@ -28,6 +29,11 @@ class DeserializeOperator {
 
     void deserializeInt(int& val);
 
+    virtual void deserializeHeader(PMSFHeader& header) {
+      header.deserialize(buffer_, dataOffset_);
+      header_ = header;
+    };
+
     virtual std::shared_ptr<MCGAL::Mesh> deserializeBaseMesh() = 0;
 
     virtual void deserializeOneRound() = 0;
@@ -39,6 +45,7 @@ class DeserializeOperator {
     std::shared_ptr<SymbolReadOperator> symbolReadOperator_;
     std::shared_ptr<ReconstructOperator> reconstructOperator_;
     std::shared_ptr<MCGAL::Mesh> mesh_;
+    PMSFHeader header_;
 
   private:
     void readBuffer(std::string path);

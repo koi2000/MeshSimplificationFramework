@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "BFSVersionManager.h"
 #include "Facet.h"
 #include "Global.h"
 #include "Halfedge.h"
@@ -9,12 +10,14 @@
 #include "string.h"
 #include <array>
 #include <assert.h>
+#include <deque>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 namespace MCGAL {
 
-// #define COLOR
+#define COLOR
 
 constexpr std::array<std::array<int, 3>, 68> colors = {{
     // {0, 0, 0},        // Black
@@ -956,6 +959,7 @@ Halfedge* Mesh::create_center_vertex(Halfedge* h, Point point) {
 Halfedge* Mesh::create_center_vertex_without_init(Halfedge* h, Point point) {
     // Vertex* vnew = new Vertex();
     Vertex* vnew = MCGAL::contextPool.allocateVertexFromPool(meshId_, point);
+    vnew->setGroupId(h->end_vertex()->groupId());
     this->vertices_.push_back(vnew);
     Halfedge* hnew = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, h->end_vertex(), vnew);
     Halfedge* oppo_new = MCGAL::contextPool.allocateHalfedgeFromPoolWithOutInit(meshId_, vnew, h->end_vertex());
@@ -1263,6 +1267,31 @@ void Mesh::submesh_dumpto_oldtype(std::string path, int groupId) {
     offFile.close();
 }
 
+void Mesh::markGroupId(MCGAL::Halfedge* seed, int groupId) {
+    std::deque<int> gateQueue;
+    gateQueue.push_back(seed->face()->poolId());
+    int current_version = MCGAL::BfsVersionMananger::current_version++;
+    while (!gateQueue.empty()) {
+        int fid = gateQueue.front();
+        gateQueue.pop_front();
+        Facet* f = MCGAL::contextPool.getFacetByIndexInSubPool(meshId_, fid);
+        if (f->isVisited(current_version)) {
+            continue;
+        }
+        f->setVisited(current_version);
+        f->setGroupId(groupId);
+        MCGAL::Halfedge* st = f->proxyHalfedge();
+        MCGAL::Halfedge* ed = f->proxyHalfedge();
+        do {
+            MCGAL::Halfedge* hOpp = st->opposite();
+            if (!hOpp->face()->isVisited(current_version) && !st->isBoundary() && !st->opposite()->isBoundary()) {
+                gateQueue.push_back(hOpp->face()->poolId());
+            }
+            st = st->next();
+        } while (st != ed);
+    }
+}
+
 void Mesh::dumpto_oldtype(std::string path) {
     // auto newEnd = std::remove_if(faces_.begin(), faces_.end(), isFacetRemovable);
     // faces_.resize(std::distance(faces_.begin(), newEnd));
@@ -1313,14 +1342,25 @@ void Mesh::dumpto_oldtype(std::string path) {
             continue;
         }
         offFile << num << " ";
+#    ifdef COLOR
+        std::map<int, int> mpcnt;
+#    endif
         do {
             offFile << hst->vertex()->vid() << " ";
+#    ifdef COLOR
+            mpcnt[hst->vertex()->groupId()]++;
+#    endif
             hst = hst->next();
         } while (hst != hed);
 
 #    ifdef COLOR
-        if (face->groupId() >= 0) {
-            offFile << colors[face->groupId()][0] << " " << colors[face->groupId()][1] << " " << colors[face->groupId()][2] << " ";
+        // if (face->groupId() >= 0) {
+        //     offFile << colors[face->groupId()][0] << " " << colors[face->groupId()][1] << " " << colors[face->groupId()][2] << " ";
+        // } else {
+        //     offFile << 0 << " " << 0 << " " << 0 << " ";
+        // }
+        if (mpcnt.size() == 1) {
+            offFile << colors[mpcnt.begin()->first][0] << " " << colors[mpcnt.begin()->first][1] << " " << colors[mpcnt.begin()->first][2] << " ";
         } else {
             offFile << 0 << " " << 0 << " " << 0 << " ";
         }

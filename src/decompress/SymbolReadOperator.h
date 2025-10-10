@@ -9,6 +9,7 @@
 #include "Halfedge.h"
 #include "Mesh.h"
 #include "Point.h"
+#include <vector>
 
 /**
  * @brief 符号收集操作符
@@ -17,6 +18,12 @@
 class SymbolReadOperator {
   public:
     SymbolReadOperator() = default;
+    virtual void collect(std::vector<MCGAL::Halfedge*> seeds ,
+                         char* buffer,
+                         int& dataOffset,
+                         std::vector<MCGAL::Vertex*>& vertices,
+                         std::vector<MCGAL::Halfedge*>& halfedge,
+                         std::vector<MCGAL::Facet*>& facets) = 0;
     // 收集一轮的信息
     virtual void collect(MCGAL::Halfedge* seed,
                          char* buffer,

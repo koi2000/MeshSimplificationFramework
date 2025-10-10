@@ -7,17 +7,34 @@
 #include "Global.h"
 #include "Halfedge.h"
 #include "Mesh.h"
+#include "Vertex.h"
+#include "boundary/BasicBoundaryCompressOperator.h"
+#include "common/Graph.h"
 #include "compress/BasicSerializeOperator.h"
 #include "compress/BasicSymbolCollectOperator.h"
+#include "compress/SegmentationSerializeOperator.h"
+#include "compress/SegmentationSymbolCollectOperator.h"
 #include "decompress/DeserializeOperator.h"
+#include "elimination/BoundaryVertexRemovalEliminateOperator.h"
 #include "handler/PropertyHandleWrapper.h"
+#include "header/PMSFHeader.h"
+#include "operator/BoundaryCompressIsRemovableOperator.h"
+#include "operator/BoundaryIsRemovableOperator.h"
 #include "operator/CustomerUpdatePropertiesOperator.h"
 #include "operator/DefaultUpdatePropertiesOperator.h"
+#include "operator/IsRemovableOperator.h"
 #include "operator/SeedIsRemovableOperator.h"
+#include "operator/VertexBasedBoundaryIsRemovableOperator.h"
+#include "segmentation/BasicSegmentOperator.h"
+#include "segmentation/SegmentOperator.h"
+#include "segmentation/SegmentationOption.h"
+#include "segmentation/VertexSegmentOperator.h"
 #include "selection/SelectOperator.h"
 #include <iostream>
 #include <memory>
+#include <set>
 #include <string>
+#include <vector>
 
 #define DEBUG
 
@@ -71,7 +88,7 @@ void PMSF::compress(CompressOptions& options) {
     eliminate->init(mesh);
     collector->init(mesh);
     select->select(seed);
-    seedIsRemovableOperator->init(nullptr, seed, nullptr);
+    seedIsRemovableOperator->init({}, {seed}, {});
     select->addIsRemovableOperator(seedIsRemovableOperator);
     int count = 0;
 #ifdef DEBUG
@@ -98,27 +115,151 @@ void PMSF::compress(CompressOptions& options) {
         // mesh->resetState();
 #endif
     }
+    PMSFHeader header = PMSFHeader::Builder()
+                            .setRound(options.getRound())
+                            .setEnableCompress(options.isEnableCompress())
+                            .setEnableQuantization(options.isEnableQuantization())
+                            .setEnableSegmentation(options.isEnableSegmentation())
+                            .build();
     serializer->initBuffer(BUFFER_SIZE);
-    serializer->serializeInt(options.getRound());
-    serializer->serializeBaseMeshWithSeed(mesh, seed);
+    serializer->serializeHeader(header);
+    // serializer->serializeInt(options.getRound());
+    serializer->serializeBaseMeshWithSeed(mesh, {seed});
     serializer->serialize(options.getOutputPath());
 }
 
 void PMSF::decompress(DecompressOptions& options) {
     std::shared_ptr<DeserializeOperator> deserializeOperator = options.getDeserializeOperator();
     deserializeOperator->init(options.getPath());
-    int round;
-    deserializeOperator->deserializeInt(round);
+    PMSFHeader header;
+    deserializeOperator->deserializeHeader(header);
     deserializeOperator->deserializeBaseMesh();
+    int round = header.getRound();
+    
+    std::shared_ptr<MCGAL::Mesh> dmesh = deserializeOperator->exportMesh();
+    std::string doutpath = "./decode/demesh_origin.off";
+    dmesh->dumpto_oldtype(doutpath);
+
     while (round--) {
         std::shared_ptr<MCGAL::Mesh> mesh = deserializeOperator->exportMesh();
 
-        std::string outpath = "./demesh_" + std::to_string(round) + ".off";
+        std::string outpath = "./decode/demesh_" + std::to_string(round) + ".off";
         mesh->dumpto_oldtype(outpath);
         mesh->resetState();
 
         deserializeOperator->deserializeOneRound();
     }
-    std::string outpath = "./demesh_fin.off";
+    std::string outpath = "./decode/demesh_fin.off";
     deserializeOperator->exportMesh()->dumpto_oldtype(outpath);
+}
+
+void PMSF::segmentDecompress(DecompressOptions& options) {
+    std::shared_ptr<DeserializeOperator> deserializeOperator = options.getDeserializeOperator();
+    deserializeOperator->init(options.getPath());
+    PMSFHeader header;
+    deserializeOperator->deserializeHeader(header);
+    deserializeOperator->deserializeBaseMesh();
+    int round = header.getRound();
+    
+    std::shared_ptr<MCGAL::Mesh> dmesh = deserializeOperator->exportMesh();
+    std::string doutpath = "./decode/demesh_origin.off";
+    dmesh->dumpto_oldtype(doutpath);
+
+    while (round--) {
+        std::shared_ptr<MCGAL::Mesh> mesh = deserializeOperator->exportMesh();
+
+        std::string outpath = "./decode/demesh_" + std::to_string(round) + ".off";
+        mesh->dumpto_oldtype(outpath);
+        mesh->resetState();
+
+        deserializeOperator->deserializeOneRound();
+    }
+    std::string outpath = "./decode/demesh_fin.off";
+    deserializeOperator->exportMesh()->dumpto_oldtype(outpath);
+}
+
+void PMSF::segmentCompress(CompressOptions& options) {
+    MCGAL::contextPool.initPoolSize(1);
+
+    std::shared_ptr<MCGAL::Mesh> mesh = std::make_shared<MCGAL::Mesh>(MCGAL::Mesh(options.getPath()));
+    std::shared_ptr<SelectOperator> select = options.getSelect();
+    std::shared_ptr<EliminateOperator> eliminate = options.getEliminate();
+    std::shared_ptr<EliminateOperator> boundaryEliminate = std::make_shared<BoundaryVertexRemovalEliminateOperator>();
+    std::shared_ptr<SymbolCollectOperator> collector = std::make_shared<SegmentationSymbolCollectOperator>();
+    std::shared_ptr<SerializeOperator> serializer =
+        std::make_shared<SegmentationSerializeOperator>(collector, options.isEnablePrediction(), options.isEnableQuantization(), options.isEnableCompress());
+    std::shared_ptr<IsRemovableOperator> seedIsRemovableOperator = std::make_shared<SeedIsRemovableOperator>();
+    std::shared_ptr<IsRemovableOperator> boundaryIsRemovableOperator = std::make_shared<BoundaryIsRemovableOperator>();
+    std::shared_ptr<IsRemovableOperator> vboundaryIsRemovableOperator = std::make_shared<VertexBasedBoundaryIsRemovableOperator>();
+    std::shared_ptr<BoundaryCompressOperator> boundaryCompressOperator = std::make_shared<BasicBoundaryCompressOperator>();
+
+    bool isEnableSegmentation = options.isEnableSegmentation();
+    SegmentationOption segmentationOption = options.getSegmentationOption();
+    std::shared_ptr<SegmentOperator> segmentOperator;
+    if (isEnableSegmentation) {
+        if (SegmentCompressionScheme::PredefinedSegments == segmentationOption.getScheme()) {
+            int numOfSegments = segmentationOption.getNumSegments();
+            segmentOperator = std::make_shared<VertexSegmentOperator>(numOfSegments);
+            segmentOperator->segment(mesh);
+            std::shared_ptr<IsRemovableOperator> op = std::make_shared<BoundaryCompressIsRemovableOperator>();
+            std::set<MCGAL::Vertex*> triPoints = segmentOperator->exportGraph().getTriPoints();
+            std::vector<MCGAL::Vertex*> triPointsVec(triPoints.begin(), triPoints.end());
+            op->init(triPointsVec, segmentOperator->exportSeeds(), {});
+            boundaryEliminate->init(mesh);
+            boundaryCompressOperator->init(mesh, std::make_shared<Graph>(segmentOperator->exportGraph()), {op}, boundaryEliminate);
+        }
+    }
+    select->init(mesh);
+    eliminate->init(mesh);
+    collector->init(mesh);
+    seedIsRemovableOperator->init({}, segmentOperator->exportSeeds(), {});
+    select->addIsRemovableOperator(seedIsRemovableOperator);
+    select->addIsRemovableOperator(vboundaryIsRemovableOperator);
+    int count = 0;
+#ifdef DEBUG
+    // for (int i = 0; i < segmentOperator->exportSeeds().size(); i++) {
+    //     mesh->markGroupId(segmentOperator->exportSeeds()[i], i);
+    // }
+    std::cout << count << std::endl;
+    count = 0;
+    std::string outpath = "./off/mesh_origin.off";
+    mesh->dumpto_oldtype(outpath);
+    mesh->resetState();
+#endif
+    for (int i = 0; i < options.getRound(); i++) {
+        MCGAL::Halfedge* candidate = nullptr;
+        while (select->select(candidate)) {
+            if (eliminate->eliminate(candidate)) {
+                count++;
+            }
+        }
+        // boundaryCompressOperator->compress_boundary();
+        collector->collect(segmentOperator->exportSeeds());
+
+        select->reset();
+#ifdef DEBUG
+        // for (int i = 0; i < segmentOperator->exportSeeds().size(); i++) {
+        //     mesh->markGroupId(segmentOperator->exportSeeds()[i], i);
+        // }
+        std::cout << count << std::endl;
+        count = 0;
+        std::string outpath = "./off/mesh_" + std::to_string(i) + ".off";
+        mesh->dumpto_oldtype(outpath);
+        // mesh->resetState();
+#endif
+    }
+    PMSFHeader header = PMSFHeader::Builder()
+                            .setRound(options.getRound())
+                            .setEnableCompress(options.isEnableCompress())
+                            .setEnableQuantization(options.isEnableQuantization())
+                            .setEnableSegmentation(options.isEnableSegmentation())
+                            .setGroupNumber(segmentOperator->exportSeeds().size())
+                            .build();
+
+    serializer->initBuffer(BUFFER_SIZE);
+    serializer->serializeHeader(header);
+    // serializer->serializeInt(options.getRound());
+    // serializer->serializeInt(segmentOperator->exportSeeds().size());
+    serializer->serializeBaseMeshWithSeed(mesh, segmentOperator->exportSeeds());
+    serializer->serialize(options.getOutputPath());
 }

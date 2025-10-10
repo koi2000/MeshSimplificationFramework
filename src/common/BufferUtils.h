@@ -1,7 +1,7 @@
 #ifndef BUFFER_UTILS_H
 #define BUFFER_UTILS_H
-#include "core.h"
 #include "EntropyCodec.h"
+#include "core.h"
 #include <assert.h>
 #include <cstring>  // For memcpy
 #include <immintrin.h>
@@ -75,6 +75,14 @@ static uint32_t readBits(unsigned i_nbBits, char* p_src, unsigned& i_bitOffset, 
     return data;
 }
 
+static void writeBool(char* buffer, unsigned& i_bitOffset, int& dataOffset, bool b) {
+    writeBits((uint32_t)b, 1, buffer, i_bitOffset, dataOffset);
+}
+
+static bool readBool(char* buffer, unsigned& i_bitOffset, int& dataOffset) {
+    bool b = readBits(1, buffer, i_bitOffset, dataOffset);
+    return b;
+}
 
 // Write a floating point number in the data buffer.
 static void writeFloat(char* buffer, int& dataOffset, float f) {
@@ -318,18 +326,15 @@ static void writeCompressedBlock(char* buffer, int& dataOffset, const char* data
         writeInt(buffer, dataOffset, 0);
         return;
     }
-    
+
     // Try to compress the data
     std::vector<uint8_t> compressed;
-    bool compressionOk = zlibCompress(reinterpret_cast<const uint8_t*>(data), 
-                                     static_cast<size_t>(dataSize), 
-                                     compressed, 
-                                     Z_BEST_COMPRESSION);
-    
+    bool compressionOk = zlibCompress(reinterpret_cast<const uint8_t*>(data), static_cast<size_t>(dataSize), compressed, Z_BEST_COMPRESSION);
+
     // If compression failed or didn't save space, store uncompressed
     if (!compressionOk || compressed.size() >= static_cast<size_t>(dataSize)) {
         writeInt(buffer, dataOffset, dataSize);
-        writeInt(buffer, dataOffset, 0); // compSize = 0 means uncompressed
+        writeInt(buffer, dataOffset, 0);  // compSize = 0 means uncompressed
         writeCharPointer(buffer, dataOffset, const_cast<char*>(data), dataSize);
     } else {
         // Store compressed data
@@ -364,7 +369,6 @@ static char* readCompressedBlock(char* buffer, int& dataOffset) {
     std::memcpy(out, decompressed.data(), static_cast<size_t>(origSize));
     return out;
 }
-
 
 static void serializeCharPointer(char* val, int size, char*& outBlock, int& outBlockSize) {
     outBlock = nullptr;

@@ -18,7 +18,7 @@ class BasicReconstructOpertator : public ReconstructOperator {
 
     void reconstruct(MCGAL::Halfedge* halfedge) override;
 
-    void reconstruct(std::vector<MCGAL::Vertex*> vertices, std::vector<MCGAL::Halfedge*>& halfedge, std::vector<MCGAL::Facet*>& facets) override;
+    void reconstruct(std::vector<MCGAL::Vertex*>& vertices, std::vector<MCGAL::Halfedge*>& halfedge, std::vector<MCGAL::Facet*>& facets) override;
 
     void merge_face(MCGAL::Halfedge* halfedge);
 

@@ -14,11 +14,12 @@ class VertexRemovalEliminateOperator : public EliminateOperator {
     VertexRemovalEliminateOperator() = default;
     ~VertexRemovalEliminateOperator() = default;
 
-    void init(std::shared_ptr<MCGAL::Mesh> mesh) override;
+    void init(std::shared_ptr<MCGAL::Mesh> mesh, bool compress_boundary = false) override;
 
     bool eliminate(MCGAL::Halfedge* h) override;
     bool remove_point(MCGAL::Halfedge* h) override;
     bool triangulate(MCGAL::Halfedge* h) override;
     bool postprocess(MCGAL::Halfedge* h) override;
-    bool encode_boundary(MCGAL::Halfedge* h) override;
+    MCGAL::Halfedge* encode_boundary(MCGAL::Halfedge* h) override;
+    int groupId = -1;
 };
