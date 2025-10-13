@@ -26,6 +26,7 @@
 
 struct HalfedgeErrorEntry {
     MCGAL::Halfedge* edge;
+    MCGAL::Point p;
     float error;
     std::uint64_t version;
 };
@@ -47,7 +48,7 @@ class HalfedgeSelectionQueue {
   public:
     HalfedgeSelectionQueue() = default;
     HalfedgeSelectionQueue(ErrorSource source,
-                           std::function<float(MCGAL::Halfedge*)> halfedgeErrorAccessor = nullptr,
+                           std::function<float(MCGAL::Halfedge*, MCGAL::Point& p)> halfedgeErrorAccessor = nullptr,
                            std::function<float(MCGAL::Vertex*)> vertexErrorAccessor = nullptr,
                            std::vector<std::shared_ptr<IsRemovableOperator>> operators = {})
         : source_(source), halfedgeErrorAccessor_(std::move(halfedgeErrorAccessor)), vertexErrorAccessor_(std::move(vertexErrorAccessor)),
@@ -125,10 +126,11 @@ class HalfedgeSelectionQueue {
             return;
         // if (!isValid(edge))
         //     return;
-        float err = computeError(edge);
+        MCGAL::Point p;
+        float err = computeError(edge, p);
         std::uint64_t version = ++globalVersionCounter_;
         currentVersions_[edge] = version;
-        heap_.push(HalfedgeErrorEntry{edge, err, version});
+        heap_.push(HalfedgeErrorEntry{edge, p, err, version});
     }
 
     // Remove an edge from consideration (lazy remove).
@@ -140,7 +142,7 @@ class HalfedgeSelectionQueue {
 
     // Pop the current best edge according to the error ordering.
     // Skips any stale entries lazily.
-    MCGAL::Halfedge* popNext() {
+    std::pair<MCGAL::Halfedge*, MCGAL::Point> popNext() {
         while (!heap_.empty()) {
             const HalfedgeErrorEntry top = heap_.top();
             heap_.pop();
@@ -155,9 +157,9 @@ class HalfedgeSelectionQueue {
                 currentVersions_.erase(it);
                 continue;
             }
-            return top.edge;
+            return {top.edge, top.p};
         }
-        return nullptr;
+        return {nullptr, MCGAL::Point()};
     }
 
     // Recompute error for a specific edge and update its priority.
@@ -173,10 +175,10 @@ class HalfedgeSelectionQueue {
     }
 
   private:
-    float computeError(MCGAL::Halfedge* edge) const {
+    float computeError(MCGAL::Halfedge* edge, MCGAL::Point& p) const {
         if (source_ == ErrorSource::Halfedge) {
             if (halfedgeErrorAccessor_)
-                return halfedgeErrorAccessor_(edge);
+                return halfedgeErrorAccessor_(edge, p);
         } else {
             if (vertexErrorAccessor_) {
                 if (edge->end_vertex())
@@ -189,7 +191,7 @@ class HalfedgeSelectionQueue {
 
   private:
     ErrorSource source_;
-    std::function<float(MCGAL::Halfedge*)> halfedgeErrorAccessor_;
+    std::function<float(MCGAL::Halfedge*, MCGAL::Point&)> halfedgeErrorAccessor_;
     std::function<float(MCGAL::Vertex*)> vertexErrorAccessor_;
     std::vector<std::shared_ptr<IsRemovableOperator>> operators_;
     std::function<bool(MCGAL::Halfedge*)> isValidEdgePredicate_;

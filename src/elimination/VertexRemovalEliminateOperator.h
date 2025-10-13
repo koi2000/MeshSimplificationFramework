@@ -16,7 +16,7 @@ class VertexRemovalEliminateOperator : public EliminateOperator {
 
     void init(std::shared_ptr<MCGAL::Mesh> mesh, bool compress_boundary = false) override;
 
-    bool eliminate(MCGAL::Halfedge* h) override;
+    bool eliminate(MCGAL::Halfedge* h, MCGAL::Point& p) override;
     bool remove_point(MCGAL::Halfedge* h) override;
     bool triangulate(MCGAL::Halfedge* h) override;
     bool postprocess(MCGAL::Halfedge* h) override;

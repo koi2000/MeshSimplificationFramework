@@ -18,7 +18,8 @@ class PriorityErrorSelector : public SelectOperator {
     void init(std::shared_ptr<MCGAL::Mesh> mesh) override;
     PriorityErrorSelector();
     ~PriorityErrorSelector();
-    bool select(MCGAL::Halfedge*& halfedge) override;
+    bool select(MCGAL::Halfedge*& halfedge, MCGAL::Point& p) override;
+    bool update(MCGAL::Halfedge*& halfedge) override;
     void addIsRemovableOperator(std::shared_ptr<IsRemovableOperator> op) override;
     void reset() override;
 

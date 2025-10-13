@@ -10,7 +10,7 @@
 
 using namespace MCGAL;
 
-bool EdgeCollapseEliminateOperator::eliminate(MCGAL::Halfedge* h) {
+bool EdgeCollapseEliminateOperator::eliminate(MCGAL::Halfedge* h, MCGAL::Point& p) {
     if (h == nullptr)
         return true;
     remove_point(h);

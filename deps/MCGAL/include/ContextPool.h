@@ -94,6 +94,30 @@ class ContextPool {
         return fprops_[index].property(_ph)[_fh->poolId()];
     }
 
+    template <class T> typename OpenMesh::VPropHandleT<T>::reference property(OpenMesh::VPropHandleT<T> _ph, MCGAL::Vertex* _vh) {
+        return vprops_[DEFAULT_MESH_ID].property(_ph)[_vh->poolId()];
+    }
+
+    template <class T> typename OpenMesh::VPropHandleT<T>::const_reference property(OpenMesh::VPropHandleT<T> _ph, MCGAL::Vertex* _vh) const {
+        return vprops_[DEFAULT_MESH_ID].property(_ph)[_vh->poolId()];
+    }
+
+    template <class T> typename OpenMesh::HPropHandleT<T>::reference property(OpenMesh::HPropHandleT<T> _ph, MCGAL::Halfedge* _hh) {
+        return hprops_[DEFAULT_MESH_ID].property(_ph)[_hh->poolId()];
+    }
+
+    template <class T> typename OpenMesh::HPropHandleT<T>::const_reference property(OpenMesh::HPropHandleT<T> _ph, MCGAL::Halfedge* _hh) const {
+        return hprops_[DEFAULT_MESH_ID].property(_ph)[_hh->poolId()];
+    }
+
+    template <class T> typename OpenMesh::FPropHandleT<T>::reference property(OpenMesh::FPropHandleT<T> _ph, MCGAL::Facet* _fh) {
+        return fprops_[DEFAULT_MESH_ID].property(_ph)[_fh->poolId()];
+    }
+
+    template <class T> typename OpenMesh::FPropHandleT<T>::const_reference property(OpenMesh::FPropHandleT<T> _ph, MCGAL::Facet* _fh) const {
+        return fprops_[DEFAULT_MESH_ID].property(_ph)[_fh->poolId()];
+    }
+
     inline int getFindex(int index) {
         return findexs[index];
     }

@@ -59,6 +59,12 @@ collect_source_files(selection)
 collect_source_files(rangecoder)
 collect_source_files(boundary)
 
+# QEM相关
+file(GLOB_RECURSE QEM_SOURCES
+    "impl/QEM/*.h"
+    "impl/QEM/*.cpp"
+)
+
 # 收集框架核心文件
 file(GLOB_RECURSE FRAMEWORK
     "src/PMSF.h"
@@ -102,6 +108,9 @@ add_executable(DefaultDecompress tools/DefaultDecompress.cpp ${ALL_SOURCES})
 target_include_directories(DefaultDecompress PUBLIC "src" )
 target_link_libraries(DefaultDecompress MCGAL_static ZLIB::ZLIB)
 
+add_executable(QEMCompress ${QEM_SOURCES} ${ALL_SOURCES})
+target_include_directories(QEMCompress PUBLIC "src" "impl/QEM" )
+target_link_libraries(QEMCompress MCGAL_static ZLIB::ZLIB)
 
 get_property(targetIncludes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
 message(STATUS "Target Include Directories: ${targetIncludes}")

@@ -36,7 +36,9 @@ class SelectOperator {
      * @return true 这一轮仍有可以选择的会返回true，否则会返回false
      * @return false
      */
-    virtual bool select(MCGAL::Halfedge*& halfedge) = 0;
+    virtual bool select(MCGAL::Halfedge*& halfedge, MCGAL::Point& p) = 0;
+
+    virtual bool update(MCGAL::Halfedge*& candidate) = 0;
 
     virtual void addIsRemovableOperator(std::shared_ptr<IsRemovableOperator> op) = 0;
 

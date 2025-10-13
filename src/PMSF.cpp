@@ -83,11 +83,13 @@ void PMSF::compress(CompressOptions& options) {
 
     // set seed
     MCGAL::Halfedge* seed = nullptr;
+    MCGAL::Point p;
+    select->options_.getRegisterFunc()(mesh);
     select->init(mesh);
 
     eliminate->init(mesh);
     collector->init(mesh);
-    select->select(seed);
+    select->select(seed, p);
     seedIsRemovableOperator->init({}, {seed}, {});
     select->addIsRemovableOperator(seedIsRemovableOperator);
     int count = 0;
@@ -100,8 +102,9 @@ void PMSF::compress(CompressOptions& options) {
 #endif
     for (int i = 0; i < options.getRound(); i++) {
         MCGAL::Halfedge* candidate = nullptr;
-        while (select->select(candidate)) {
-            if (eliminate->eliminate(candidate)) {
+        while (select->select(candidate, p)) {
+            if (eliminate->eliminate(candidate, p)) {
+                // select->update(candidate);
                 count++;
             }
         }
@@ -135,7 +138,7 @@ void PMSF::decompress(DecompressOptions& options) {
     deserializeOperator->deserializeHeader(header);
     deserializeOperator->deserializeBaseMesh();
     int round = header.getRound();
-    
+
     std::shared_ptr<MCGAL::Mesh> dmesh = deserializeOperator->exportMesh();
     std::string doutpath = "./decode/demesh_origin.off";
     dmesh->dumpto_oldtype(doutpath);
@@ -160,7 +163,7 @@ void PMSF::segmentDecompress(DecompressOptions& options) {
     deserializeOperator->deserializeHeader(header);
     deserializeOperator->deserializeBaseMesh();
     int round = header.getRound();
-    
+
     std::shared_ptr<MCGAL::Mesh> dmesh = deserializeOperator->exportMesh();
     std::string doutpath = "./decode/demesh_origin.off";
     dmesh->dumpto_oldtype(doutpath);
@@ -186,8 +189,8 @@ void PMSF::segmentCompress(CompressOptions& options) {
     std::shared_ptr<EliminateOperator> eliminate = options.getEliminate();
     std::shared_ptr<EliminateOperator> boundaryEliminate = std::make_shared<BoundaryVertexRemovalEliminateOperator>();
     std::shared_ptr<SymbolCollectOperator> collector = std::make_shared<SegmentationSymbolCollectOperator>();
-    std::shared_ptr<SerializeOperator> serializer =
-        std::make_shared<SegmentationSerializeOperator>(collector, options.isEnablePrediction(), options.isEnableQuantization(), options.isEnableCompress());
+    std::shared_ptr<SerializeOperator> serializer = std::make_shared<SegmentationSerializeOperator>(
+        collector, options.isEnablePrediction(), options.isEnableQuantization(), options.isEnableCompress());
     std::shared_ptr<IsRemovableOperator> seedIsRemovableOperator = std::make_shared<SeedIsRemovableOperator>();
     std::shared_ptr<IsRemovableOperator> boundaryIsRemovableOperator = std::make_shared<BoundaryIsRemovableOperator>();
     std::shared_ptr<IsRemovableOperator> vboundaryIsRemovableOperator = std::make_shared<VertexBasedBoundaryIsRemovableOperator>();
@@ -228,8 +231,10 @@ void PMSF::segmentCompress(CompressOptions& options) {
 #endif
     for (int i = 0; i < options.getRound(); i++) {
         MCGAL::Halfedge* candidate = nullptr;
-        while (select->select(candidate)) {
-            if (eliminate->eliminate(candidate)) {
+        MCGAL::Point p;
+        while (select->select(candidate, p)) {
+            if (eliminate->eliminate(candidate, p)) {
+                select->update(candidate);
                 count++;
             }
         }

@@ -9,8 +9,8 @@
 #include "Options.h"
 #include "core.h"
 #include "handler/ProcessorRegistry.h"
-#include <cstddef>
 #include "options/CompressOptions.h"
+#include <cstddef>
 
 class PMSF {
   public:
@@ -26,6 +26,10 @@ class PMSF {
     void decompress(DecompressOptions& options);
 
     void RegisterProperties();
+
+    // template <class T> void registerPropertity(OpenMesh::VPropHandleT<T> v);
+    // template <class T> void registerPropertity(OpenMesh::HPropHandleT<T> h);
+    // template <class T> void registerPropertity(OpenMesh::FPropHandleT<T> f);
 
   private:
     MCGAL::Mesh mesh_;

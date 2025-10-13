@@ -6,29 +6,33 @@
 #define SELECT_OPTIONS_H
 
 #include "../operator/IsRemovableOperator.h"
+#include "Mesh.h"
 #include "selection/ErrorSource.h"
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
-
 
 /**
  * 需要传入error accessor，通过传入func的形式来做，而不是指定属性了
  */
 
 class SelectOptions {
-public:
+  public:
     SelectOptions() = default;
     virtual ~SelectOptions() = default;
 
     // 获取半边误差访问器
-    const std::function<float(MCGAL::Halfedge*)>& getHalfedgeErrorAccessor() const {
+    const std::function<float(MCGAL::Halfedge*, MCGAL::Point&)>& getHalfedgeErrorAccessor() const {
         return halfedgeErrorAccessor_;
     }
 
     // 获取顶点误差访问器
     const std::function<float(MCGAL::Vertex*)>& getVertexErrorAccessor() const {
         return vertexErrorAccessor_;
+    }
+
+    const std::function<void(std::shared_ptr<MCGAL::Mesh>)>& getRegisterFunc() const {
+        return register_func_;
     }
 
     // 获取ErrorSource
@@ -42,8 +46,12 @@ public:
     }
 
     // 设置半边误差访问器
-    void setHalfedgeErrorAccessor(std::function<float(MCGAL::Halfedge*)> accessor) {
+    void setHalfedgeErrorAccessor(std::function<float(MCGAL::Halfedge*, MCGAL::Point&)> accessor) {
         halfedgeErrorAccessor_ = std::move(accessor);
+    }
+
+    void setRegisterProperties(std::function<void(std::shared_ptr<MCGAL::Mesh>)> register_func) {
+        register_func_ = std::move(register_func);
     }
 
     // 设置顶点误差访问器
@@ -62,11 +70,16 @@ public:
     }
 
     class Builder {
-    public:
+      public:
         Builder() = default;
 
-        Builder& withHalfedgeErrorAccessor(std::function<float(MCGAL::Halfedge*)> accessor) {
+        Builder& withHalfedgeErrorAccessor(std::function<float(MCGAL::Halfedge*, MCGAL::Point&)> accessor) {
             halfedgeErrorAccessor_ = std::move(accessor);
+            return *this;
+        }
+
+        Builder& withRegisterProperties(std::function<void(std::shared_ptr<MCGAL::Mesh>)> register_func) {
+            register_func_ = std::move(register_func);
             return *this;
         }
 
@@ -95,6 +108,7 @@ public:
             options->setHalfedgeErrorAccessor(std::move(halfedgeErrorAccessor_));
             options->setVertexErrorAccessor(std::move(vertexErrorAccessor_));
             options->setErrorSource(errorSource_);
+            options->setRegisterProperties(register_func_);
             for (auto& op : isRemovableOperators_) {
                 options->addIsRemovableOperator(std::move(op));
             }
@@ -108,10 +122,11 @@ public:
             return *this;
         }
 
-    private:
+      private:
         ErrorSource errorSource_{};
-        std::function<float(MCGAL::Halfedge*)> halfedgeErrorAccessor_;
+        std::function<float(MCGAL::Halfedge*, MCGAL::Point&)> halfedgeErrorAccessor_;
         std::function<float(MCGAL::Vertex*)> vertexErrorAccessor_;
+        std::function<void(std::shared_ptr<MCGAL::Mesh>)> register_func_;
         std::vector<std::shared_ptr<IsRemovableOperator>> isRemovableOperators_;
     };
 
@@ -119,10 +134,11 @@ public:
         return Builder{};
     }
 
-private:
+  private:
     ErrorSource errorSource_{};
-    std::function<float(MCGAL::Halfedge*)> halfedgeErrorAccessor_;
+    std::function<float(MCGAL::Halfedge*, MCGAL::Point&)> halfedgeErrorAccessor_;
     std::function<float(MCGAL::Vertex*)> vertexErrorAccessor_;
+    std::function<void(std::shared_ptr<MCGAL::Mesh>)> register_func_;
     std::vector<std::shared_ptr<IsRemovableOperator>> isRemovableOperators_;
 };
 

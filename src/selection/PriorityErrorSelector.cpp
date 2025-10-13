@@ -11,7 +11,7 @@ PriorityErrorSelector::PriorityErrorSelector(SelectOptions options) : SelectOper
     ErrorSource source = options.getErrorSource();
     auto halfedgeErrorAccessor = options.getHalfedgeErrorAccessor();
     auto vertexErrorAccessor = options.getVertexErrorAccessor();
-    queue = HalfedgeSelectionQueue(source, halfedgeErrorAccessor, vertexErrorAccessor,options.getIsRemovableOperators());
+    queue = HalfedgeSelectionQueue(source, halfedgeErrorAccessor, vertexErrorAccessor, options.getIsRemovableOperators());
 }
 
 void PriorityErrorSelector::init(std::shared_ptr<MCGAL::Mesh> mesh) {
@@ -30,10 +30,22 @@ void PriorityErrorSelector::reset() {
     queue.buildFromMesh(mesh_);
 }
 
-bool PriorityErrorSelector::select(MCGAL::Halfedge*& halfedge) {
-    halfedge = queue.popNext();
+bool PriorityErrorSelector::select(MCGAL::Halfedge*& halfedge, MCGAL::Point& p) {
+    auto pair = queue.popNext();
+    halfedge = pair.first;
+    p = pair.second;
     if (halfedge == nullptr) {
         return false;
     }
+    return true;
+}
+
+bool PriorityErrorSelector::update(MCGAL::Halfedge*& halfedge) {
+    for (MCGAL::Halfedge* h : halfedge->vertex()->halfedges()) {
+        if (queue.isValid(h)) {
+            queue.pushOrUpdate(h);
+        }
+    }
+
     return true;
 }

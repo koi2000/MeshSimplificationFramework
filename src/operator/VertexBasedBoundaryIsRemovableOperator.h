@@ -12,18 +12,17 @@ class VertexBasedBoundaryIsRemovableOperator : public IsRemovableOperator {
     VertexBasedBoundaryIsRemovableOperator() = default;
     ~VertexBasedBoundaryIsRemovableOperator() = default;
     bool isRemovable(MCGAL::Halfedge* h) {
-        for (MCGAL::Halfedge* h : h->vertex()->halfedges()) {
-            if (h->vertex()->groupId() != h->end_vertex()->groupId()) {
-              
-                return false;
-            }
-        }
+        // for (MCGAL::Halfedge* h : h->vertex()->halfedges()) {
+        //     if (h->vertex()->groupId() != h->end_vertex()->groupId()) {    
+        //         return false;
+        //     }
+        // }
         for (MCGAL::Halfedge* h : h->end_vertex()->halfedges()) {
             if (h->vertex()->groupId() != h->end_vertex()->groupId()) {
                 return false;
             }
         }
         return true;
-        //  h->vertex()->groupId() == h->end_vertex()->groupId();
+        // return h->vertex()->groupId() == h->end_vertex()->groupId();
     };
 };

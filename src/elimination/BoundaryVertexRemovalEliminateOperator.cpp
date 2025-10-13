@@ -20,7 +20,7 @@ void BoundaryVertexRemovalEliminateOperator::init(std::shared_ptr<MCGAL::Mesh> m
     compress_boundary_ = compress_boundary;
 }
 
-bool BoundaryVertexRemovalEliminateOperator::eliminate(MCGAL::Halfedge* h) {
+bool BoundaryVertexRemovalEliminateOperator::eliminate(MCGAL::Halfedge* h, MCGAL::Point& p) {
     if (h == nullptr)
         return false;
     CHECK_TRUE(remove_point(h));

@@ -23,7 +23,7 @@ class EliminateOperator {
 
     virtual ~EliminateOperator() = default;
 
-    virtual bool eliminate(MCGAL::Halfedge* h) = 0;
+    virtual bool eliminate(MCGAL::Halfedge* h, MCGAL::Point& p) = 0;
 
     virtual bool remove_point(MCGAL::Halfedge* h) = 0;
 
